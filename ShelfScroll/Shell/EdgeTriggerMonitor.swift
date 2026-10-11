@@ -1,10 +1,17 @@
 import AppKit
 import Observation
 
-/// Converts a scroll event into "pull down" amount (> 0 = fingers/wheel pulling content down).
-func normalizedDownAmount(_ event: NSEvent, invert: Bool) -> CGFloat {
-    let d = event.isDirectionInvertedFromDevice ? event.scrollingDeltaY : -event.scrollingDeltaY
+/// "Pull down" amount in points (> 0 = fingers/wheel pulling content down).
+/// Non-precise devices (mouse wheels) report lines; scale them to roughly points.
+func normalizedDownAmount(deltaY: CGFloat, invertedFromDevice: Bool, precise: Bool, invert: Bool) -> CGFloat {
+    let points = precise ? deltaY : deltaY * 10 // ponytail: line→point factor, tune on real wheels
+    let d = invertedFromDevice ? points : -points
     return invert ? -d : d
+}
+
+func normalizedDownAmount(_ event: NSEvent, invert: Bool) -> CGFloat {
+    normalizedDownAmount(deltaY: event.scrollingDeltaY, invertedFromDevice: event.isDirectionInvertedFromDevice,
+                         precise: event.hasPreciseScrollingDeltas, invert: invert)
 }
 
 extension ModifierKey {
@@ -71,7 +78,7 @@ final class EdgeTriggerMonitor {
         if config.scroll { add(.scrollWheel) { [weak self] e in
             guard let self else { return }
             self.feed(.scroll(downAmount: normalizedDownAmount(e, invert: self.settings.invertScroll),
-                              isMomentum: e.momentumPhase != [], at: NSEvent.mouseLocation))
+                              isMomentum: e.momentumPhase != [], at: NSEvent.mouseLocation, time: self.now))
         } }
         if config.hold != nil || config.wait != nil { add(.mouseMoved) { [weak self] _ in
             self?.mouseMoved()
@@ -80,14 +87,20 @@ final class EdgeTriggerMonitor {
             self?.dragPasteboardCount = NSPasteboard(name: .drag).changeCount
         }
         add(.leftMouseDragged) { [weak self] _ in
-            guard let self, NSPasteboard(name: .drag).changeCount != self.dragPasteboardCount else { return }
+            guard let self, self.trigger.edgeScreen(at: NSEvent.mouseLocation) != nil,
+                  NSPasteboard(name: .drag).changeCount != self.dragPasteboardCount else { return }
             self.feed(.drag(NSEvent.mouseLocation)) // only real drag-and-drop sessions, not window drags
         }
     }
 
+    /// Global monitors miss events delivered to our own windows (Settings, onboarding), so pair each with a local one.
     private func add(_ mask: NSEvent.EventTypeMask, _ handler: @escaping @MainActor (NSEvent) -> Void) {
         if let m = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { e in
             MainActor.assumeIsolated { handler(e) }
+        }) { monitors.append(m) }
+        if let m = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { e in
+            MainActor.assumeIsolated { handler(e) }
+            return e
         }) { monitors.append(m) }
     }
 
@@ -95,8 +108,8 @@ final class EdgeTriggerMonitor {
         let p = NSEvent.mouseLocation
         feed(.moved(p, time: now))
         scheduleWait()
-        // Global flagsChanged needs Accessibility, so poll modifiers only while parked at the edge.
-        if trigger.config.hold != nil, trigger.edgeScreen(at: p) != nil {
+        // Global flagsChanged needs Accessibility, so poll modifiers only while at the edge and recently moved.
+        if trigger.shouldPollModifiers(now: now), !isSuspended() {
             if holdTimer == nil {
                 let t = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
                     MainActor.assumeIsolated { self?.checkHold() }
@@ -111,10 +124,9 @@ final class EdgeTriggerMonitor {
     }
 
     private func checkHold() {
-        let p = NSEvent.mouseLocation
-        guard trigger.edgeScreen(at: p) != nil else { stopHoldTimer(); return }
-        feed(.modifiers(ModifierKey.set(from: NSEvent.modifierFlags), at: p,
-                        mouseButtonDown: NSEvent.pressedMouseButtons != 0))
+        guard trigger.shouldPollModifiers(now: now), !isSuspended() else { stopHoldTimer(); return }
+        feed(.modifiers(ModifierKey.set(from: NSEvent.modifierFlags), at: NSEvent.mouseLocation,
+                        mouseButtonDown: NSEvent.pressedMouseButtons != 0, time: now))
     }
 
     private func stopHoldTimer() {

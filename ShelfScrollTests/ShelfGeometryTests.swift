@@ -36,10 +36,30 @@ import Testing
                 == CGRect(x: 1512, y: 455, width: 1920, height: 400))
     }
 
-    @Test func closeOnScrollUpNearBottom() {
-        let panel = CGRect(x: 0, y: 549, width: 1512, height: 400)
-        #expect(ShelfGeometry.shouldCloseOnScroll(point: CGPoint(x: 700, y: 560), panelFrame: panel, upAmount: 8))
-        #expect(!ShelfGeometry.shouldCloseOnScroll(point: CGPoint(x: 700, y: 700), panelFrame: panel, upAmount: 8))
-        #expect(!ShelfGeometry.shouldCloseOnScroll(point: CGPoint(x: 700, y: 560), panelFrame: panel, upAmount: 2))
+    let panel = CGRect(x: 0, y: 549, width: 1512, height: 400)
+    let nearBottom = CGPoint(x: 700, y: 560)
+
+    @Test func closeOnSingleLargeScrollUpNearBottom() {
+        var c = ScrollCloseTracker()
+        do { let r = c.add(upAmount: 8, point: nearBottom, panelFrame: panel, time: 0); #expect(r) }
+    }
+
+    @Test func closeIgnoresScrollAwayFromBottom() {
+        var c = ScrollCloseTracker()
+        do { let r = c.add(upAmount: 8, point: CGPoint(x: 700, y: 700), panelFrame: panel, time: 0); #expect(!r) }
+    }
+
+    // Review: slow swipes (1–3 pt per event) must accumulate to a close.
+    @Test func closeAccumulatesSmallScrolls() {
+        var c = ScrollCloseTracker()
+        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 0); #expect(!r) }
+        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 0.05); #expect(!r) }
+        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 0.1); #expect(r) }
+    }
+
+    @Test func closeAccumulatorResetsOnPause() {
+        var c = ScrollCloseTracker()
+        _ = c.add(upAmount: 4, point: nearBottom, panelFrame: panel, time: 0)
+        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 5); #expect(!r) }
     }
 }

@@ -10,8 +10,8 @@ struct EdgeTriggerConfig: Equatable {
 enum EdgeInput {
     case moved(CGPoint, time: TimeInterval)
     /// `downAmount` > 0 means "pull down", already normalized for device direction.
-    case scroll(downAmount: CGFloat, isMomentum: Bool, at: CGPoint)
-    case modifiers(Set<ModifierKey>, at: CGPoint, mouseButtonDown: Bool)
+    case scroll(downAmount: CGFloat, isMomentum: Bool, at: CGPoint, time: TimeInterval)
+    case modifiers(Set<ModifierKey>, at: CGPoint, mouseButtonDown: Bool, time: TimeInterval)
     case drag(CGPoint)
     case tick(TimeInterval)
 }
@@ -27,12 +27,19 @@ enum EdgeDecision: Equatable {
 struct EdgeTrigger {
     static let edgeTolerance: CGFloat = 2
     static let scrollThreshold: CGFloat = 6 // ponytail: calibration knob — tune on real trackpads/mice
+    static let scrollGap: TimeInterval = 0.3   // pause that starts a new scroll gesture
+    static let holdDelay: TimeInterval = 0.2   // modifier must be held this long with no mouse button
+    static let pollWindow: TimeInterval = 2    // stop polling modifiers this long after the last move
 
     var config: EdgeTriggerConfig
     var screens: [CGRect] // Cocoa global coordinates (origin bottom-left)
     private(set) var waitDeadline: TimeInterval?
     private var scrollAccumulator: CGFloat = 0
     private var lastPoint: CGPoint?
+    private var lastScrollTime: TimeInterval = -.infinity
+    private var lastMoveTime: TimeInterval = -.infinity
+    private var holdStart: TimeInterval?
+    private var holdDisarmed = false
 
     init(config: EdgeTriggerConfig, screens: [CGRect]) {
         self.config = config
@@ -54,6 +61,7 @@ struct EdgeTrigger {
         case let .moved(p, time):
             let wasAtEdge = lastPoint.flatMap(edgeScreen) != nil
             lastPoint = p
+            lastMoveTime = time
             if edgeScreen(at: p) == nil {
                 reset()
             } else if !wasAtEdge, let wait = config.wait {
@@ -67,19 +75,30 @@ struct EdgeTrigger {
             reset()
             return .open(screen: i)
 
-        case let .scroll(amount, isMomentum, p):
+        case let .scroll(amount, isMomentum, p, time):
             lastPoint = p
-            guard config.scroll, !isMomentum, let i = edgeScreen(at: p) else { return .none }
-            guard amount > 0 else { scrollAccumulator = 0; return .none }
+            defer { lastScrollTime = time }
+            guard config.scroll, !isMomentum else { return .none }
+            guard let i = edgeScreen(at: p), amount > 0 else { scrollAccumulator = 0; return .none }
+            if time - lastScrollTime > Self.scrollGap { scrollAccumulator = 0 }
             scrollAccumulator += amount
             guard scrollAccumulator >= Self.scrollThreshold else { return .none }
             reset()
             return .open(screen: i)
 
-        case let .modifiers(mods, p, mouseButtonDown):
+        case let .modifiers(mods, p, mouseButtonDown, time):
             lastPoint = p
-            guard let hold = config.hold, mods.contains(hold), !mouseButtonDown,
-                  let i = edgeScreen(at: p) else { return .none }
+            guard let hold = config.hold, let i = edgeScreen(at: p), mods.contains(hold) else {
+                holdStart = nil
+                holdDisarmed = false // released (or left the edge): re-arm
+                return .none
+            }
+            // A mouse button while holding means ⌘-drag etc.: ignore until the key is released.
+            if mouseButtonDown { holdDisarmed = true; holdStart = nil }
+            guard !holdDisarmed else { return .none }
+            let start = holdStart ?? time
+            holdStart = start
+            guard time - start >= Self.holdDelay - 1e-9 else { return .none }
             reset()
             return .open(screen: i)
 
@@ -91,8 +110,14 @@ struct EdgeTrigger {
         }
     }
 
+    /// Whether the monitor should poll modifier keys: Hold enabled, cursor at an edge, moved recently.
+    func shouldPollModifiers(now: TimeInterval) -> Bool {
+        config.hold != nil && lastPoint.flatMap(edgeScreen) != nil && now - lastMoveTime <= Self.pollWindow
+    }
+
     mutating func reset() {
         waitDeadline = nil
         scrollAccumulator = 0
+        holdStart = nil
     }
 }

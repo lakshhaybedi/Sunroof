@@ -17,14 +17,26 @@ enum ShelfGeometry {
         return CGRect(x: screenFrame.minX, y: visibleFrame.maxY - h, width: screenFrame.width, height: h)
     }
 
-    static func shouldCloseOnScroll(point: CGPoint, panelFrame: CGRect, upAmount: CGFloat) -> Bool {
-        upAmount >= EdgeTrigger.scrollThreshold
-            && panelFrame.contains(point)
-            && point.y <= panelFrame.minY + closeZone
-    }
 
     @MainActor static func displayKey(_ screen: NSScreen) -> String {
         let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
         return "display-\(id?.uint32Value ?? 0)"
+    }
+}
+
+/// Accumulates scroll-up near the shelf's bottom edge; true once it adds up to a close.
+struct ScrollCloseTracker {
+    private var total: CGFloat = 0
+    private var lastTime: TimeInterval = -.infinity
+
+    mutating func add(upAmount: CGFloat, point: CGPoint, panelFrame: CGRect, time: TimeInterval) -> Bool {
+        defer { lastTime = time }
+        let inZone = panelFrame.contains(point) && point.y <= panelFrame.minY + ShelfGeometry.closeZone
+        guard inZone, upAmount > 0 else { total = 0; return false }
+        if time - lastTime > EdgeTrigger.scrollGap { total = 0 }
+        total += upAmount
+        guard total >= EdgeTrigger.scrollThreshold else { return false }
+        total = 0
+        return true
     }
 }

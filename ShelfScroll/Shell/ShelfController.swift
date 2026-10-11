@@ -12,6 +12,7 @@ final class ShelfController {
     private var monitors: [Any] = []
     private var screen: NSScreen?
     private var hideGeneration = 0
+    private var closeTracker = ScrollCloseTracker()
     private var split: PanelSplitController?
     var descriptors: [PanelDescriptor] = PanelDescriptor.placeholders
 
@@ -147,7 +148,8 @@ final class ShelfController {
             MainActor.assumeIsolated {
                 guard let self, e.momentumPhase == [] else { return }
                 let up = -normalizedDownAmount(e, invert: self.settings.invertScroll)
-                if ShelfGeometry.shouldCloseOnScroll(point: NSEvent.mouseLocation, panelFrame: self.panel.frame, upAmount: up) {
+                if self.closeTracker.add(upAmount: up, point: NSEvent.mouseLocation, panelFrame: self.panel.frame,
+                                         time: ProcessInfo.processInfo.systemUptime) {
                     self.hide()
                 }
             }
