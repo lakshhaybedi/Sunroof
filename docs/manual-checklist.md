@@ -72,6 +72,24 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 - [ ] Catch Screenshots on → ⇧⌘4 screenshot lands in Files/Screenshots (Desktop prompt appears once)
 - [ ] Change the Files folder in Settings; point it at a deleted folder → "Folder not found" + Choose…
 
+## Notes
+- [ ] Opening the shelf puts the caret in the last note; typing works immediately (unless opened by dragging a file)
+- [ ] Markers (`**`, `#`, `>`…) fade on other lines and reappear on the caret line
+- [ ] Checkboxes render and toggle on click; ⌘⏎ toggles the caret line; checked items strike through
+- [ ] ⏎ continues bullets / numbers / checklists / quotes; ⏎ on an empty item ends the list; Tab / ⇧Tab indent; numbers renumber after edits and ⌘⌥↑/↓ moves
+- [ ] Typing `[] ` makes a checklist item
+- [ ] ⌘B ⌘I ⌘U ⇧⌘X ⇧⌘H ⌘E ⌘K, ⌘1–3, ⇧⌘8, ⇧⌘7, ⇧⌘L all work; the floating bar appears over a selection; Aa menu works
+- [ ] ⌘-click opens a link; `||secret||` shows •••• and reveals on click
+- [ ] Paste a screenshot (⌘⇧⌃4 then ⌘V) → image appears inline, file in Notes/attachments
+- [ ] ⌘F opens the find bar; undo/redo work across list edits
+- [ ] ≡, pinch and holding ⌃⇧ over the panel toggle list ↔ note; + creates a note
+- [ ] List: pinned first, previews, × on hover deletes to Trash, right-click Pin / Duplicate / Show in Finder
+- [ ] Search finds text inside notes
+- [ ] Rename the first line, close the shelf → the file is renamed in Finder
+- [ ] Edit a note in TextEdit while it has unsaved changes here → a "(conflict …)" copy appears, nothing lost
+- [ ] Quit right after typing → the text is on disk; a 10,000-line note still opens and types without lag
+- [ ] Notes folder and font size settings apply live
+
 ## Performance (Release, measured 2026-10-11, Apple Silicon, macOS 27.0.1)
 
 | | Target | Measured |
@@ -86,3 +104,5 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 After Clipboard (45 text + 5 × 3000×2000 image clips): closed 20 MB, 0.0 % CPU, 4 threads; open 31 MB. Idle wake-ups (Activity Monitor) 0 — the 0.5 s clipboard timer still fires (~8 context switches/s) but is coalesced.
 
 After Files (300-file drawer incl. 100 × 3000×2000 PNGs): closed 21 MB, open 33 MB, 0.0 % CPU, 4 threads.
+
+After Notes (200 notes + a 10,000-line note open): closed 22 MB, open 61 MB, 0.0 % CPU, 4 threads.
