@@ -4,7 +4,8 @@ import Sparkle
 import ServiceManagement
 import SwiftUI
 
-/// Hosts SettingsView in a plain window (SwiftUI's Settings scene can't be opened reliably from an agent app).
+/// Native toolbar-style preferences window (like Unclutter's): one tab per section, each with a real size.
+/// (A SwiftUI TabView of grouped Forms in a hosted window collapses to almost zero height.)
 @MainActor
 final class SettingsWindowController {
     private var window: NSWindow?
@@ -16,36 +17,51 @@ final class SettingsWindowController {
         self.updater = updater
     }
 
+    private struct Page { let title: String; let symbol: String; let height: CGFloat; let view: AnyView }
+
+    private var pages: [Page] {
+        [
+            Page(title: "General", symbol: "switch.2", height: 420, view: AnyView(GeneralSettings(updater: updater))),
+            Page(title: "Files", symbol: "folder", height: 150, view: AnyView(FilesSettings())),
+            Page(title: "Notes", symbol: "note.text", height: 190, view: AnyView(NotesSettings())),
+            Page(title: "Clipboard", symbol: "clipboard", height: 480, view: AnyView(ClipboardSettings().padding(20))),
+            Page(title: "Panels", symbol: "rectangle.split.3x1", height: 260, view: AnyView(PanelsSettings().padding(20))),
+            Page(title: "Appearance", symbol: "paintpalette", height: 210, view: AnyView(AppearanceSettings())),
+            Page(title: "Advanced", symbol: "gearshape", height: 230, view: AnyView(AdvancedSettings())),
+        ]
+    }
+
+    var tabTitles: [String] { pages.map(\.title) }
+
+    func makeWindow() -> NSWindow {
+        let tabs = NSTabViewController()
+        tabs.tabStyle = .toolbar
+        for page in pages {
+            let vc = NSHostingController(rootView: page.view.environment(settings))
+            vc.sizingOptions = []
+            vc.preferredContentSize = NSSize(width: 580, height: page.height)
+            vc.view.frame.size = vc.preferredContentSize
+            vc.title = page.title
+            let item = NSTabViewItem(viewController: vc)
+            item.label = page.title
+            item.image = NSImage(systemSymbolName: page.symbol, accessibilityDescription: page.title)
+            tabs.addTabViewItem(item)
+        }
+        let w = NSWindow(contentViewController: tabs)
+        w.title = "Sunroof Settings"
+        w.styleMask = [.titled, .closable]
+        w.isReleasedWhenClosed = false
+        w.setContentSize(NSSize(width: 580, height: pages[0].height))
+        return w
+    }
+
     func show() {
         if window == nil {
-            let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(updater: updater).environment(settings)))
-            w.title = "Sunroof Settings"
-            w.styleMask = [.titled, .closable]
-            w.isReleasedWhenClosed = false
-            w.center()
-            window = w
+            window = makeWindow()
+            window?.center()
         }
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
-    }
-}
-
-struct SettingsView: View {
-    var updater: SPUUpdater?
-
-    var body: some View {
-        // Plans 2–4 insert Files, Notes and Clipboard tabs after General.
-        TabView {
-            GeneralSettings(updater: updater).tabItem { Label("General", systemImage: "switch.2") }
-            FilesSettings().tabItem { Label("Files", systemImage: "folder") }
-            NotesSettings().tabItem { Label("Notes", systemImage: "note.text") }
-            ClipboardSettings().tabItem { Label("Clipboard", systemImage: "clipboard") }
-            PanelsSettings().tabItem { Label("Panels", systemImage: "rectangle.split.3x1") }
-            AppearanceSettings().tabItem { Label("Appearance", systemImage: "paintpalette") }
-            AdvancedSettings().tabItem { Label("Advanced", systemImage: "gearshape") }
-        }
-        .frame(width: 560)
-        .padding(20)
     }
 }
 
