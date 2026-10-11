@@ -148,4 +148,10 @@ import Testing
         let p = tv.textStorage?.attribute(.paragraphStyle, at: 4, effectiveRange: nil) as? NSParagraphStyle
         #expect((p?.firstLineHeadIndent ?? 0) >= 12)
     }
+
+    // Review: tooltips come from the text system's per-range .toolTip attribute (reliable link-to-link).
+    @Test func linkCarriesToolTipAttribute() {
+        let tv = view("see [docs](https://apple.com) now\nx")
+        #expect(tv.textStorage?.attribute(.toolTip, at: 5, effectiveRange: nil) as? String == "⌘-click to open apple.com in your browser")
+    }
 }

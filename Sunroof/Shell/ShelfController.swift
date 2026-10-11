@@ -120,8 +120,8 @@ final class ShelfController {
         let chosen = ids.compactMap { id in descriptors.first { $0.id == id } }
         let settings = settings
         let vc = PanelSplitController(descriptors: chosen, displayKey: key, settings: settings) { moved, target in
-            settings.panelOrder = movingPanel(moved, onto: target, in: visiblePanels(order: settings.panelOrder,
-                                                                                      enabled: Set(PanelID.allCases)))
+            let new = movingPanel(moved, onto: target, in: visiblePanels(order: settings.panelOrder, enabled: Set(PanelID.allCases)))
+            if new != settings.panelOrder { settings.panelOrder = new } // dropping on itself: no rebuild
         }
         split = vc
         setColumns(vc.view)

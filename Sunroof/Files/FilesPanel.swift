@@ -283,6 +283,7 @@ struct FilesPanel: View {
             let forward = key.key == .rightArrow || key.key == .downArrow
             let next = forward ? min((index ?? -1) + 1, items.count - 1) : max((index ?? 1) - 1, 0)
             selection = [items[next].url]
+            anchor = items[next].url
             return .handled
         case .return:
             if selectedItems.count == 1, !settings.filesAsList { renaming = selectedItems[0].url }

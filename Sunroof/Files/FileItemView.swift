@@ -43,7 +43,7 @@ struct FileCell: View {
                     .truncationMode(.middle)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 4)
-                    .background(RoundedRectangle(cornerRadius: 4).fill(selected ? Color.accentColor : .clear))
+                    .background(RoundedRectangle(cornerRadius: 4).fill(selected ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear)))
                     .foregroundStyle(selected ? .white : .primary)
                 if let subtitle {
                     Label(subtitle, systemImage: "folder").font(.caption2).foregroundStyle(.secondary).lineLimit(1)

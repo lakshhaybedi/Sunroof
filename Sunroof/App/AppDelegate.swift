@@ -147,8 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             notes: { q in notesStore.search(q) },
             files: { q in DrawerModel.search(q, in: root.withLock { $0 }) })
-        let host = NSHostingView(rootView: GlobalSearchView(search: search) { [weak self] hit in self?.activate(hit) }
-            .tint(settings.accent.color))
+        let host = NSHostingView(rootView: GlobalSearchView(search: search, settings: settings) { [weak self] hit in self?.activate(hit) })
         host.isHidden = true
         shelf.setOverlay(host)
         shelf.onGlobalSearch = { [weak self] in self?.setSearchVisible(!(self?.search.isVisible ?? true)) }

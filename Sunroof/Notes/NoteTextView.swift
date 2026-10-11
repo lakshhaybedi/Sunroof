@@ -445,7 +445,7 @@ final class NoteTextView: NSTextView {
             case .conceal: break
             case let .link(url):
                 ts.addAttributes([.foregroundColor: accentColor, .underlineStyle: NSUnderlineStyle.single.rawValue,
-                                  .noteLink: url], range: r)
+                                  .noteLink: url, .toolTip: Self.hint(for: url)], range: r)
             }
         }
     }
@@ -551,6 +551,10 @@ final class NoteTextView: NSTextView {
     func linkHint(forCharacterAt i: Int) -> String? {
         guard let ts = textStorage, i >= 0, i < ts.length, let url = ts.attribute(.noteLink, at: i, effectiveRange: nil) as? URL
         else { return nil }
+        return Self.hint(for: url)
+    }
+
+    static func hint(for url: URL) -> String {
         if url.scheme == "mailto" { return "⌘-click to email \(url.absoluteString.dropFirst(7))" }
         let host = url.host()?.replacingOccurrences(of: "www.", with: "") ?? url.absoluteString
         return "⌘-click to open \(host) in your browser"
@@ -564,12 +568,21 @@ final class NoteTextView: NSTextView {
                                        owner: self, userInfo: ["links": true]))
     }
 
+    // Tooltips come from the .toolTip text attribute; this only shows the hand cursor while ⌘ is held over a link.
     override func mouseMoved(with event: NSEvent) {
         super.mouseMoved(with: event)
-        let p = convert(event.locationInWindow, from: nil)
-        let hint = characterIndex(at: p).flatMap { linkHint(forCharacterAt: $0) }
-        if toolTip != hint { toolTip = hint }
-        if hint != nil, event.modifierFlags.contains(.command) { NSCursor.pointingHand.set() }
+        updateLinkCursor(event.modifierFlags, at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func flagsChanged(with event: NSEvent) {
+        super.flagsChanged(with: event)
+        guard let window else { return }
+        updateLinkCursor(event.modifierFlags, at: convert(window.mouseLocationOutsideOfEventStream, from: nil))
+    }
+
+    private func updateLinkCursor(_ flags: NSEvent.ModifierFlags, at p: NSPoint) {
+        guard flags.contains(.command), characterIndex(at: p).flatMap({ linkHint(forCharacterAt: $0) }) != nil else { return }
+        NSCursor.pointingHand.set()
     }
 
     override func mouseDown(with event: NSEvent) {

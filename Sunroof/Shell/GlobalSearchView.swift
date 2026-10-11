@@ -3,6 +3,7 @@ import SwiftUI
 
 struct GlobalSearchView: View {
     @Bindable var search: GlobalSearch
+    var settings: AppSettings? = nil
     let onActivate: (SearchHit) -> Void
     @FocusState private var fieldFocused: Bool
 
@@ -44,6 +45,7 @@ struct GlobalSearchView: View {
             }
         }
         .frame(maxWidth: 640)
+        .tint(settings?.accent.color ?? .accentColor) // read in body → follows the setting live
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .padding(12)
         .onAppear { fieldFocused = true }
