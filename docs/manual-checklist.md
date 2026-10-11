@@ -99,6 +99,12 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 - [ ] Rename a sticky's note (first line) → the sticky's title follows; delete the note → the sticky closes
 - [ ] Closing a sticky keeps the note
 
+## Release
+- [ ] "Check for Updates…" in the menu bar menu (unsigned build: toast "Updates aren't set up for this build.")
+- [ ] General › "Automatically check for updates" (signed builds only)
+- [ ] The app icon shows in Finder, the .dmg and the onboarding window
+- [ ] `scripts/make-dmg.sh` → open the .dmg → drag to Applications → launches
+
 ## Performance (Release, measured 2026-10-11, Apple Silicon, macOS 27.0.1)
 
 | | Target | Measured |
@@ -115,3 +121,5 @@ After Clipboard (45 text + 5 × 3000×2000 image clips): closed 20 MB, 0.0 % CPU
 After Files (300-file drawer incl. 100 × 3000×2000 PNGs): closed 21 MB, open 33 MB, 0.0 % CPU, 4 threads.
 
 After Notes (200 notes + a 10,000-line note open): closed 22 MB, open 61 MB, 0.0 % CPU, 4 threads.
+
+Final (scripts/perf.sh, all features, empty folders, Universal Release build): closed 22 MB / 3 threads; open 47 MB / 5 threads; 0 idle wake-ups. CPU is 0.0 % at rest; short bursts (≤ 0.9 %) only while you scroll or move the mouse in other apps (the edge trigger's event handlers). Unclutter for comparison: 309 MB, 0.3 %, 3 wake-ups, 7 threads.
