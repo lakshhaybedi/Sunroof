@@ -38,6 +38,25 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 - [ ] Accessibility button opens the system prompt; ✓ appears after granting and returning
 - [ ] Done → relaunch is quiet; unticking "Do not open…" → relaunch shows the strip
 
+## Clipboard
+- [ ] Copy text, a URL, an image, a Finder file and a colour (Digital Color Meter) — each appears with the source app icon and the right preview
+- [ ] Re-copying something already in history moves it to the top
+- [ ] Clicking a row copies it (and it becomes the top row)
+- [ ] ⏎ pastes into the app you were in (Accessibility granted); without it, "Copied — press ⌘V" appears
+- [ ] ⌥⏎ pastes as plain text (rich text loses formatting)
+- [ ] ⌘1–9 paste the n-th clip; ⌘C copies; ⌘S stars; ⌫ deletes; ↑/↓ move the selection
+- [ ] Space opens Quick Look on image and file clips
+- [ ] Hovering a row swaps the app icon for ☆ and shows ×; ★ view shows filled stars, clicking one unfavourites
+- [ ] ⊘ shows "Cancel | Clear the Clipboard and History"; clearing keeps favourites
+- [ ] ⏸ turns orange and nothing new is recorded; menu bar "Pause Clipboard" stays in sync
+- [ ] A 1Password copy shows as •••••• · 1Password; holding ⌥ while hovering reveals it; it's gone after quitting
+- [ ] An app set to Ignore in Settings › Clipboard is never recorded
+- [ ] 🔍 search filters by text, file name and app name
+- [ ] Editing the top text clip then pressing Esc updates the clipboard (paste elsewhere to check)
+- [ ] Quit the app you were in while the shelf is open, then ⏎ → toast, no crash
+- [ ] History limit 10 / 25 / 50 applies immediately; "opens with" applies on next open
+- [ ] History and favourites survive a relaunch; changing the favourites folder carries favourites over
+
 ## Performance (Release, measured 2026-10-11, Apple Silicon, macOS 27.0.1)
 
 | | Target | Measured |
@@ -48,3 +67,5 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 | Idle wake-ups/s | ≤ 2 | 0 |
 | Threads | ≤ 7 | 3 |
 | Binary | Universal | x86_64 + arm64, 2.0 MB |
+
+After Clipboard (45 text + 5 × 3000×2000 image clips): closed 20 MB, 0.0 % CPU, 0 wake-ups, 4 threads; open 31 MB.
