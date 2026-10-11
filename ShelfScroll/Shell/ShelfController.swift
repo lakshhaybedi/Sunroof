@@ -21,6 +21,12 @@ final class ShelfController {
     var onHide: [() -> Void] = []
     /// Called after the panel is shown and key.
     var onShow: [() -> Void] = []
+    /// ⌘⇧F inside the shelf.
+    var onGlobalSearch: (() -> Void)?
+    /// Asked in order on Esc; the first that returns true consumes it (e.g. closing the search overlay).
+    var escapeHandlers: [() -> Bool] = []
+    private var overlay: NSView?
+    var overlayView: NSView? { overlay }
     /// The column `show` was asked to focus (nil = default).
     private(set) var requestedFocus: PanelID?
     /// Frontmost app when the shelf opened — the paste target.
@@ -55,6 +61,21 @@ final class ShelfController {
     }
 
     private var body: NSView!
+
+    /// A view pinned over the top of the columns (the search overlay); nil removes it.
+    func setOverlay(_ view: NSView?) {
+        overlay?.removeFromSuperview()
+        overlay = view
+        guard let view else { return }
+        view.translatesAutoresizingMaskIntoConstraints = false
+        body.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.topAnchor.constraint(equalTo: body.topAnchor, constant: 32),
+            view.centerXAnchor.constraint(equalTo: body.centerXAnchor),
+            view.widthAnchor.constraint(lessThanOrEqualTo: body.widthAnchor),
+            view.bottomAnchor.constraint(lessThanOrEqualTo: body.bottomAnchor),
+        ])
+    }
 
     /// Replace the column content (Task 5's split view).
     func setColumns(_ view: NSView) {
@@ -155,11 +176,17 @@ final class ShelfController {
             MainActor.assumeIsolated { self?.hide() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard e.keyCode == 53, let self else { return e } // Esc
-            let ours = e.window === self.panel // Esc in Settings/onboarding isn't ours
-            guard ours else { return e }
+            guard let self, e.window === self.panel else { return e } // keys in Settings/onboarding aren't ours
+            let flags = e.modifierFlags.intersection([.command, .shift, .option, .control])
+            if e.keyCode == 3, flags == [.command, .shift] { // ⌘⇧F
+                MainActor.assumeIsolated { self.onGlobalSearch?() }
+                return nil
+            }
+            guard e.keyCode == 53 else { return e } // Esc
             MainActor.assumeIsolated {
-                if self.panel.firstResponder is NSTextView { // end text editing first
+                if self.escapeHandlers.contains(where: { $0() }) {
+                    // handled (e.g. search overlay closed)
+                } else if self.panel.firstResponder is NSTextView { // end text editing first
                     self.panel.makeFirstResponder(nil)
                 } else {
                     self.hide()

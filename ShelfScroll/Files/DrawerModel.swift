@@ -144,7 +144,7 @@ final class DrawerModel {
     /// Await the pending search (tests).
     func searchSettled() async { await searchTask?.value }
 
-    private nonisolated static func search(_ q: String, in root: URL) -> [URL] {
+    nonisolated static func search(_ q: String, in root: URL) -> [URL] {
         guard let e = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.nameKey],
                                                      options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { return [] }
         var hits: [URL] = []

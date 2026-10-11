@@ -1,5 +1,6 @@
 import AppKit
 import KeyboardShortcuts
+import os
 import SwiftUI
 
 @MainActor
@@ -19,6 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var screenshots: ScreenshotWatcher!
     private var noteStore: NoteStore!
     private(set) var notes: NotesController!
+    private var search: GlobalSearch!
+    private let searchRoot = OSAllocatedUnfairLock(initialState: URL(fileURLWithPath: "/"))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests use the app as host; don't show windows or install monitors there.
@@ -28,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setUpClipboard()
         setUpFiles()
         setUpNotes()
+        setUpSearch()
         edgeMonitor = EdgeTriggerMonitor(settings: settings) { [weak self] decision in
             self?.handle(decision)
         }
@@ -109,6 +113,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func setUpSearch() {
+        let (clips, notesStore, root) = (clipStore!, noteStore!, searchRoot)
+        search = GlobalSearch(
+            clips: { q in
+                var seen = Set<String>()
+                return ClipStore.filter(clips.favorites + clips.history, query: q).filter { seen.insert($0.contentHash).inserted }
+            },
+            notes: { q in notesStore.search(q) },
+            files: { q in DrawerModel.search(q, in: root.withLock { $0 }) })
+        let host = NSHostingView(rootView: GlobalSearchView(search: search) { [weak self] hit in self?.activate(hit) })
+        host.isHidden = true
+        shelf.setOverlay(host)
+        shelf.onGlobalSearch = { [weak self] in self?.setSearchVisible(!(self?.search.isVisible ?? true)) }
+        shelf.escapeHandlers.append { [weak self] in
+            guard let self, self.search.isVisible else { return false }
+            self.setSearchVisible(false)
+            return true
+        }
+        shelf.onHide.append { [weak self] in self?.setSearchVisible(false) }
+    }
+
+    private func setSearchVisible(_ visible: Bool) {
+        search.isVisible = visible
+        if !visible { search.query = "" }
+        shelfOverlay?.isHidden = !visible
+    }
+
+    private var shelfOverlay: NSView? { shelf.overlayView }
+
+    private func activate(_ hit: SearchHit) {
+        setSearchVisible(false)
+        switch hit {
+        case let .clip(c): paster.paste(c)
+        case let .file(u): NSWorkspace.shared.open(u)
+        case let .note(f, _, _):
+            notes.open(f)
+            DispatchQueue.main.async { self.notes.focus() }
+        }
+    }
+
     private func syncNotesFolder() {
         withObservationTracking {
             let folder = settings.notesFolder
@@ -131,6 +175,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else if drawer.rootMissing {
                 drawer.reload() // re-choosing the same folder after it reappears
             }
+            searchRoot.withLock { $0 = root }
             drawer.arrangeBy = settings.arrangeBy
             drawer.foldersOnTop = settings.foldersOnTop
         } onChange: { [weak self] in
