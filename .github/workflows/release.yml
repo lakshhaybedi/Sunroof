@@ -1,0 +1,138 @@
+name: Release
+# Tag vX.Y.Z → test, sign (Developer ID), notarize, package .dmg, sign the Sparkle update, publish.
+# Without signing secrets it still publishes an unsigned build (with a warning) — see RELEASING.md.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      HAS_SIGNING: ${{ secrets.DEVELOPER_ID_P12 != '' }}
+      HAS_NOTARY: ${{ secrets.ASC_KEY_P8 != '' }}
+      HAS_SPARKLE: ${{ secrets.SPARKLE_ED_PRIVATE_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag matches MARKETING_VERSION
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(sed -nE 's/^ *MARKETING_VERSION: *([0-9.]+).*/\1/p' project.yml | head -1)
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Tag v$TAG doesn't match MARKETING_VERSION $VERSION in project.yml"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Generate project and test
+        run: |
+          brew install xcodegen
+          xcodegen
+          xcodebuild test -project ShelfScroll.xcodeproj -scheme ShelfScroll -destination 'platform=macOS,arch=arm64' -quiet
+
+      - name: Import Developer ID certificate
+        if: env.HAS_SIGNING == 'true'
+        env:
+          P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Build (Release, Universal)
+        run: |
+          xcodebuild -project ShelfScroll.xcodeproj -scheme ShelfScroll -configuration Release \
+            -derivedDataPath build -quiet build
+          APP=build/Build/Products/Release/ShelfScroll.app
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          if [ "$HAS_SIGNING" != "true" ]; then
+            echo "::warning::Signing secrets not set — publishing an unsigned build"
+            exit 0
+          fi
+          # Developer ID + hardened runtime, inside-out (Sparkle's helpers first, then the app).
+          ID="Developer ID Application"
+          SPARKLE="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+          sign() { codesign --force --timestamp --options runtime --sign "$ID" "$@"; }
+          sign "$SPARKLE/XPCServices/Installer.xpc"
+          sign --preserve-metadata=entitlements "$SPARKLE/XPCServices/Downloader.xpc"
+          sign "$SPARKLE/Autoupdate"
+          sign "$SPARKLE/Updater.app"
+          sign "$APP/Contents/Frameworks/Sparkle.framework"
+          sign "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Package .dmg
+        run: |
+          DMG=$(scripts/make-dmg.sh "$APP" dist)
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+
+      - name: Notarize and staple
+        if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          codesign --force --timestamp --sign "Developer ID Application" "$DMG"
+          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/key.p8"
+          xcrun notarytool submit "$DMG" --key "$RUNNER_TEMP/key.p8" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait
+          xcrun stapler staple "$DMG"
+          rm "$RUNNER_TEMP/key.p8"
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="## $VERSION" '$0 == v {on=1; next} /^## / && on {exit} on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          [ -s "$RUNNER_TEMP/notes.md" ] || echo "ShelfScroll $VERSION" > "$RUNNER_TEMP/notes.md"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "ShelfScroll $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+
+      - name: Update Sparkle appcast (gh-pages)
+        if: env.HAS_SPARKLE == 'true'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          SPARKLE_VERSION=$(python3 -c "import json; d=json.load(open('ShelfScroll.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved')); print(next(p['state']['version'] for p in d['pins'] if p['identity']=='sparkle'))")
+          curl -sSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP" ./bin/sign_update
+          SIG=$(echo "$SPARKLE_ED_PRIVATE_KEY" | "$RUNNER_TEMP/bin/sign_update" --ed-key-file - "$DMG")
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$(basename "$DMG")"
+          git fetch origin gh-pages || true
+          git worktree add -B gh-pages "$RUNNER_TEMP/pages" origin/gh-pages 2>/dev/null || git worktree add --orphan -b gh-pages "$RUNNER_TEMP/pages"
+          python3 - "$RUNNER_TEMP/pages/appcast.xml" "$VERSION" "$URL" "$SIG" "$RUNNER_TEMP/notes.md" <<'PY'
+          import sys, os, html, email.utils
+          path, version, url, sig, notes = sys.argv[1:6]
+          item = f"""    <item>
+                <title>ShelfScroll {version}</title>
+                <pubDate>{email.utils.formatdate()}</pubDate>
+                <sparkle:version>{version}</sparkle:version>
+                <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+                <description><![CDATA[<pre>{html.escape(open(notes).read())}</pre>]]></description>
+                <enclosure url="{url}" type="application/octet-stream" {sig} />
+              </item>
+          """
+          head = '<?xml version="1.0" encoding="utf-8"?>\n<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">\n  <channel>\n    <title>ShelfScroll</title>\n'
+          old = open(path).read() if os.path.exists(path) else head + "  </channel>\n</rss>\n"
+          marker = "    <title>ShelfScroll</title>\n"
+          open(path, "w").write(old.replace(marker, marker + item, 1))
+          PY
+          cd "$RUNNER_TEMP/pages"
+          git add appcast.xml
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -m "Appcast: $VERSION"
+          git push origin gh-pages
