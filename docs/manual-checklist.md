@@ -1,6 +1,6 @@
 # Shell — manual checklist
 
-Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-run: `defaults delete com.lakshhaybedi.ShelfScroll`.
+Run from Xcode or `build/Build/Products/Release/Sunroof.app`. To redo first-run: `defaults delete com.lakshhaybedi.Sunroof`.
 
 ## Opening & closing
 - [ ] Scroll down at the very top of the screen opens the strip (trackpad)

@@ -1,4 +1,4 @@
-name: ShelfScroll
+name: Sunroof
 options:
   bundleIdPrefix: com.lakshhaybedi
   deploymentTarget:
@@ -11,10 +11,10 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     from: 2.6.0
 targets:
-  ShelfScroll:
+  Sunroof:
     type: application
     platform: macOS
-    sources: [ShelfScroll]
+    sources: [Sunroof]
     dependencies:
       - package: KeyboardShortcuts
       - package: Sparkle
@@ -32,9 +32,9 @@ targets:
           fi
     settings:
       base:
-        INFOPLIST_FILE: ShelfScroll/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.lakshhaybedi.ShelfScroll
-        PRODUCT_NAME: ShelfScroll
+        INFOPLIST_FILE: Sunroof/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.lakshhaybedi.Sunroof
+        PRODUCT_NAME: Sunroof
         SWIFT_VERSION: "6.0"
         ENABLE_HARDENED_RUNTIME: NO  # ad-hoc local builds (library validation rejects ad-hoc frameworks); release.yml re-signs with Developer ID + `codesign --options runtime`
         ENABLE_APP_SANDBOX: NO
@@ -50,25 +50,25 @@ targets:
         Release:
           ARCHS: "arm64 x86_64"
           ONLY_ACTIVE_ARCH: NO
-  ShelfScrollTests:
+  SunroofTests:
     type: bundle.unit-test
     platform: macOS
-    sources: [ShelfScrollTests]
+    sources: [SunroofTests]
     dependencies:
-      - target: ShelfScroll
+      - target: Sunroof
     settings:
       base:
         SWIFT_VERSION: "6.0"
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
         GENERATE_INFOPLIST_FILE: YES
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ShelfScroll.app/Contents/MacOS/ShelfScroll"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Sunroof.app/Contents/MacOS/Sunroof"
         BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
-  ShelfScroll:
+  Sunroof:
     build:
       targets:
-        ShelfScroll: all
-        ShelfScrollTests: [test]
+        Sunroof: all
+        SunroofTests: [test]
     test:
-      targets: [ShelfScrollTests]
+      targets: [SunroofTests]

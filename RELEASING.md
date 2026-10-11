@@ -1,12 +1,12 @@
-# Releasing ShelfScroll
+# Releasing Sunroof
 
 ## Build it yourself (no Apple account needed)
 
 ```bash
 brew install xcodegen
 xcodegen
-xcodebuild -project ShelfScroll.xcodeproj -scheme ShelfScroll -configuration Release -derivedDataPath build build
-scripts/make-dmg.sh build/Build/Products/Release/ShelfScroll.app dist
+xcodebuild -project Sunroof.xcodeproj -scheme Sunroof -configuration Release -derivedDataPath build build
+scripts/make-dmg.sh build/Build/Products/Release/Sunroof.app dist
 ```
 
 Local builds are signed ad-hoc and can't auto-update. macOS blocks the first launch of an unsigned download: open it once, then System Settings › Privacy & Security › **Open Anyway** (macOS 15+ no longer offers right-click → Open). For a build you made yourself there's no quarantine and it opens normally.
@@ -26,7 +26,7 @@ Local builds are signed ad-hoc and can't auto-update. macOS blocks the first lau
    - Put the **public** key in `project.yml` → `SPARKLE_PUBLIC_KEY`, commit.
    - `./bin/generate_keys -x private-key.txt` → `SPARKLE_ED_PRIVATE_KEY` = its contents. Delete the file afterwards.
 5. Add the secrets above in GitHub › the repo › Settings › Secrets and variables › Actions.
-6. **GitHub Pages** — after the first release creates the `gh-pages` branch: Settings › Pages › Deploy from branch › `gh-pages` / root. The app reads `https://lakshhaybedi.github.io/ShelfScroll/appcast.xml`.
+6. **GitHub Pages** — after the first release creates the `gh-pages` branch: Settings › Pages › Deploy from branch › `gh-pages` / root. The app reads `https://lakshhaybedi.github.io/Sunroof/appcast.xml`.
 
 ## Each release
 

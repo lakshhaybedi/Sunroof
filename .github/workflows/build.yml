@@ -8,12 +8,12 @@ jobs:
       - run: brew install xcodegen
       - run: xcodegen
       - name: Unit tests
-        run: xcodebuild test -project ShelfScroll.xcodeproj -scheme ShelfScroll -destination 'platform=macOS,arch=arm64' -quiet
+        run: xcodebuild test -project Sunroof.xcodeproj -scheme Sunroof -destination 'platform=macOS,arch=arm64' -quiet
       - name: Release build + unsigned .dmg
         run: |
-          xcodebuild -project ShelfScroll.xcodeproj -scheme ShelfScroll -configuration Release -derivedDataPath build -quiet build
-          scripts/make-dmg.sh build/Build/Products/Release/ShelfScroll.app dist
+          xcodebuild -project Sunroof.xcodeproj -scheme Sunroof -configuration Release -derivedDataPath build -quiet build
+          scripts/make-dmg.sh build/Build/Products/Release/Sunroof.app dist
       - uses: actions/upload-artifact@v4
         with:
-          name: ShelfScroll-unsigned-dmg
+          name: Sunroof-unsigned-dmg
           path: dist/*.dmg

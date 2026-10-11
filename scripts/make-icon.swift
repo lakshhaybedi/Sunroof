@@ -1,5 +1,5 @@
-// Renders the ShelfScroll app icon into an .appiconset.
-// Usage: swift scripts/make-icon.swift ShelfScroll/Assets.xcassets/AppIcon.appiconset
+// Renders the Sunroof app icon into an .appiconset.
+// Usage: swift scripts/make-icon.swift Sunroof/Assets.xcassets/AppIcon.appiconset
 import AppKit
 
 let out = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "AppIcon.appiconset")

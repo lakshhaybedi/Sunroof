@@ -34,7 +34,7 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen
-          xcodebuild test -project ShelfScroll.xcodeproj -scheme ShelfScroll -destination 'platform=macOS,arch=arm64' -quiet
+          xcodebuild test -project Sunroof.xcodeproj -scheme Sunroof -destination 'platform=macOS,arch=arm64' -quiet
 
       - name: Import Developer ID certificate
         if: env.HAS_SIGNING == 'true'
@@ -55,9 +55,9 @@ jobs:
 
       - name: Build (Release, Universal)
         run: |
-          xcodebuild -project ShelfScroll.xcodeproj -scheme ShelfScroll -configuration Release \
+          xcodebuild -project Sunroof.xcodeproj -scheme Sunroof -configuration Release \
             -derivedDataPath build -quiet build
-          APP=build/Build/Products/Release/ShelfScroll.app
+          APP=build/Build/Products/Release/Sunroof.app
           echo "APP=$APP" >> "$GITHUB_ENV"
           if [ "$HAS_SIGNING" != "true" ]; then
             echo "::warning::Signing secrets not set — publishing an unsigned build"
@@ -105,12 +105,12 @@ jobs:
       - name: Release notes from CHANGELOG.md
         run: |
           awk -v v="## $VERSION" '$0 == v {on=1; next} /^## / && on {exit} on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
-          [ -s "$RUNNER_TEMP/notes.md" ] || echo "ShelfScroll $VERSION" > "$RUNNER_TEMP/notes.md"
+          [ -s "$RUNNER_TEMP/notes.md" ] || echo "Sunroof $VERSION" > "$RUNNER_TEMP/notes.md"
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "ShelfScroll $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "Sunroof $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
 
       - name: Update Sparkle appcast (gh-pages)
         # Only signed + notarized builds are offered as updates (an ad-hoc update would drop the user's permissions).
@@ -123,7 +123,7 @@ jobs:
             echo "::error::SPARKLE_PUBLIC_KEY is empty in project.yml — shipped apps couldn't verify updates"
             exit 1
           fi
-          SPARKLE_VERSION=$(python3 -c "import json; d=json.load(open('ShelfScroll.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved')); print(next(p['state']['version'] for p in d['pins'] if p['identity']=='sparkle'))")
+          SPARKLE_VERSION=$(python3 -c "import json; d=json.load(open('Sunroof.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved')); print(next(p['state']['version'] for p in d['pins'] if p['identity']=='sparkle'))")
           curl -sSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
           SIG=$(echo "$SPARKLE_ED_PRIVATE_KEY" | "$(find "$RUNNER_TEMP" -name sign_update -type f | head -1)" --ed-key-file - "$DMG")
           URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$(basename "$DMG")"
@@ -133,7 +133,7 @@ jobs:
           import sys, os, html, email.utils
           path, version, url, sig, notes = sys.argv[1:6]
           item = f"""    <item>
-                <title>ShelfScroll {version}</title>
+                <title>Sunroof {version}</title>
                 <pubDate>{email.utils.formatdate()}</pubDate>
                 <sparkle:version>{version}</sparkle:version>
                 <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
@@ -142,9 +142,9 @@ jobs:
                 <enclosure url="{url}" type="application/octet-stream" {sig} />
               </item>
           """
-          head = '<?xml version="1.0" encoding="utf-8"?>\n<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">\n  <channel>\n    <title>ShelfScroll</title>\n'
+          head = '<?xml version="1.0" encoding="utf-8"?>\n<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">\n  <channel>\n    <title>Sunroof</title>\n'
           old = open(path).read() if os.path.exists(path) else head + "  </channel>\n</rss>\n"
-          marker = "    <title>ShelfScroll</title>\n"
+          marker = "    <title>Sunroof</title>\n"
           open(path, "w").write(old.replace(marker, marker + item, 1))
           PY
           cd "$RUNNER_TEMP/pages"
