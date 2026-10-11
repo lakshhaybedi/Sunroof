@@ -90,6 +90,15 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 - [ ] Quit right after typing → the text is on disk; a 10,000-line note still opens and types without lag
 - [ ] Notes folder and font size settings apply live
 
+## Cross-panel
+- [ ] Right-click a clip → Send to Note ▸ recent note / New Note; toast "Added to …"; an image clip lands inline; the open note shows the addition without losing what you typed
+- [ ] ⌘⇧F opens search over the shelf; results in Clipboard / Files / Notes; ↑/↓ + ⏎ and click act (paste / open file / open note); Esc closes only the search
+- [ ] Right-click a note → Float as Sticky; it stays on top over other apps, Spaces and full-screen apps
+- [ ] Move/resize a sticky, quit, relaunch → it reopens in the same place
+- [ ] Type in the same note in the shelf and in the sticky → both show the text, nothing lost
+- [ ] Rename a sticky's note (first line) → the sticky's title follows; delete the note → the sticky closes
+- [ ] Closing a sticky keeps the note
+
 ## Performance (Release, measured 2026-10-11, Apple Silicon, macOS 27.0.1)
 
 | | Target | Measured |
