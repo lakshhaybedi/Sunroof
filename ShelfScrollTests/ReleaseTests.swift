@@ -17,4 +17,8 @@ import Testing
         let v = info("CFBundleShortVersionString") as? String ?? ""
         #expect(v.range(of: #"^\d+\.\d+\.\d+$"#, options: .regularExpression) != nil)
     }
+
+    @Test func hasAppIcon() {
+        #expect(info("CFBundleIconName") as? String == "AppIcon")
+    }
 }
