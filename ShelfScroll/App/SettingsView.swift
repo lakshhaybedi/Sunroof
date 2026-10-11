@@ -31,6 +31,7 @@ struct SettingsView: View {
         TabView {
             GeneralSettings().tabItem { Label("General", systemImage: "switch.2") }
             FilesSettings().tabItem { Label("Files", systemImage: "folder") }
+            NotesSettings().tabItem { Label("Notes", systemImage: "note.text") }
             ClipboardSettings().tabItem { Label("Clipboard", systemImage: "clipboard") }
             PanelsSettings().tabItem { Label("Panels", systemImage: "rectangle.split.3x1") }
             AppearanceSettings().tabItem { Label("Appearance", systemImage: "paintpalette") }

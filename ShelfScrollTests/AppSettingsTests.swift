@@ -76,4 +76,18 @@ import Testing
         #expect(!s.isDefaultFilesFolder)
         #expect(AppSettings(defaults: defaults).filesFolder.path == "/tmp/x")
     }
+
+    @Test func notesDefaults() {
+        let s = AppSettings(defaults: defaults)
+        #expect(s.notesFolder.lastPathComponent == "ShelfScroll Notes")
+        #expect(s.noteFontSize == 14)
+        #expect(!s.notesShowList)
+        #expect(s.lastNote == nil)
+        #expect(s.lastNoteSelection == 0)
+        s.notesFolder = URL(fileURLWithPath: "/tmp/n")
+        s.lastNote = "Ideas.md"
+        let t = AppSettings(defaults: defaults)
+        #expect(t.notesFolder.path == "/tmp/n")
+        #expect(t.lastNote == "Ideas.md")
+    }
 }

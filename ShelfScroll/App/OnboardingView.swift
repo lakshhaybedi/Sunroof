@@ -77,7 +77,7 @@ private struct GesturePage: View {
     }
 }
 
-/// Where Files (and, from plan 4, Notes) live.
+/// Where Files and Notes live.
 private struct FoldersPage: View {
     @Environment(AppSettings.self) private var settings
 
@@ -88,6 +88,7 @@ private struct FoldersPage: View {
             Text("Where should things live?").font(.title2.bold())
             Form {
                 FolderPicker(title: "Files", url: $settings.filesFolder)
+                FolderPicker(title: "Notes", url: $settings.notesFolder)
             }
             .formStyle(.grouped)
             Text("Put these in iCloud Drive or Dropbox to sync between Macs. macOS will ask once for access to your Documents folder.")
