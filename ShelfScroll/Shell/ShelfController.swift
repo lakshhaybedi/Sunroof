@@ -12,6 +12,8 @@ final class ShelfController {
     private var monitors: [Any] = []
     private var screen: NSScreen?
     private var hideGeneration = 0
+    private var split: PanelSplitController?
+    var descriptors: [PanelDescriptor] = PanelDescriptor.placeholders
 
     var onVisibilityChange: ((Bool) -> Void)?
     var isVisible: Bool { panel.isVisible && hideGeneration == 0 }
@@ -56,6 +58,7 @@ final class ShelfController {
     func show(on screen: NSScreen, focus: PanelID?) {
         hideGeneration = 0
         self.screen = screen
+        rebuildColumnsIfNeeded()
         let saved = settings.height(forDisplay: ShelfGeometry.displayKey(screen))
             ?? screen.visibleFrame.height * ShelfGeometry.defaultFraction
         let final = ShelfGeometry.frame(height: saved, screenFrame: screen.frame, visibleFrame: screen.visibleFrame)
@@ -71,7 +74,19 @@ final class ShelfController {
             if reduceMotion { panel.animator().alphaValue = 1 } else { panel.animator().setFrame(final, display: true) }
         }
         installMonitors()
+        if let focus { split?.focus(focus) }
         onVisibilityChange?(true)
+    }
+
+    private func rebuildColumnsIfNeeded(force: Bool = false) {
+        guard let key = displayKey else { return }
+        let ids = visiblePanels(order: settings.panelOrder, enabled: settings.enabledPanels)
+        let name = "ShelfSplit-\(key)-\(ids.map(\.rawValue).joined(separator: "-"))"
+        guard force || split?.splitView.autosaveName != name else { return }
+        let chosen = ids.compactMap { id in descriptors.first { $0.id == id } }
+        let vc = PanelSplitController(descriptors: chosen, displayKey: key)
+        split = vc
+        setColumns(vc.view)
     }
 
     func hide() {
@@ -181,11 +196,14 @@ final class ShelfController {
         withObservationTracking {
             _ = settings.theme
             _ = settings.material
+            _ = settings.panelOrder
+            _ = settings.enabledPanels
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
                 self.applyAppearance()
                 self.applyMaterial()
+                self.rebuildColumnsIfNeeded()
                 self.observeSettings()
             }
         }
