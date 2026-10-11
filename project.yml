@@ -18,19 +18,32 @@ targets:
     dependencies:
       - package: KeyboardShortcuts
       - package: Sparkle
+    postBuildScripts:
+      - name: Re-sign embedded frameworks for ad-hoc builds
+        basedOnDependencyAnalysis: false
+        script: |
+          # Ad-hoc ("-") builds: Sparkle keeps its vendor signature, which library validation rejects
+          # ("different Team IDs"). Re-sign it ad-hoc so it matches the app. Developer ID builds are
+          # re-signed in the release workflow.
+          if [ "$EXPANDED_CODE_SIGN_IDENTITY" = "-" ] || [ "$CODE_SIGN_IDENTITY" = "-" ]; then
+            for f in "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"/*.framework; do
+              [ -e "$f" ] && codesign --force --deep --sign - "$f"
+            done
+          fi
     settings:
       base:
         INFOPLIST_FILE: ShelfScroll/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.lakshhaybedi.ShelfScroll
         PRODUCT_NAME: ShelfScroll
         SWIFT_VERSION: "6.0"
-        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_HARDENED_RUNTIME: NO  # ad-hoc local builds; release.yml sets YES with Developer ID (library validation rejects ad-hoc frameworks)
         ENABLE_APP_SANDBOX: NO
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
         MARKETING_VERSION: 0.1.0
         CURRENT_PROJECT_VERSION: 1
         GENERATE_INFOPLIST_FILE: NO
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         SPARKLE_PUBLIC_KEY: ""   # set from Sparkle's generate_keys (see RELEASING.md)
       configs:
         Release:
