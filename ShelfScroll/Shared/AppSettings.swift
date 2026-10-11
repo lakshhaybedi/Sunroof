@@ -51,6 +51,8 @@ final class AppSettings {
     var notesShowList: Bool { didSet { save(notesShowList, "notesShowList") } }
     var lastNote: String? { didSet { save(lastNote ?? "", "lastNote") } }
     var lastNoteSelection: Int { didSet { save(lastNoteSelection, "lastNoteSelection") } }
+    /// Open sticky notes: filename → NSStringFromRect(frame).
+    var stickies: [String: String] { didSet { save((try? JSONEncoder().encode(stickies)) ?? Data(), "stickies") } }
     /// Column the user last worked in; gets keyboard focus when the shelf opens.
     var lastPanel: PanelID { didSet { if lastPanel != oldValue { save(lastPanel.rawValue, "lastPanel") } } }
     static let noteFontSizes: [Double] = [12, 13, 14, 16, 18]
@@ -98,6 +100,7 @@ final class AppSettings {
         lastNote = (defaults.string(forKey: "settings.lastNote")).flatMap { $0.isEmpty ? nil : $0 }
         lastNoteSelection = v("lastNoteSelection", 0)
         lastPanel = PanelID(rawValue: v("lastPanel", "")) ?? .notes
+        stickies = (defaults.data(forKey: "settings.stickies")).flatMap { try? JSONDecoder().decode([String: String].self, from: $0) } ?? [:]
     }
 
     static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }

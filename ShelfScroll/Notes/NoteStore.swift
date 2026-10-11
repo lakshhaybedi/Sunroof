@@ -28,6 +28,10 @@ final class NoteStore {
     @ObservationIgnored private var reportedFailures = Set<String>()
     /// Called once per note when a save fails (permission denied, disk full, volume offline).
     @ObservationIgnored var onSaveError: ((String) -> Void)?
+    /// Called after a note's file is renamed (title change) — stickies follow it.
+    @ObservationIgnored var onRename: [(_ old: String, _ new: String) -> Void] = []
+    /// Called after a note is deleted (here or on disk) — its sticky closes.
+    @ObservationIgnored var onDelete: [(_ filename: String) -> Void] = []
 
     init(folder: URL, trash: @escaping (URL) throws -> Void = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }) {
         self.folder = folder
@@ -92,6 +96,7 @@ final class NoteStore {
         diskModified[filename] = nil
         if let p = pinned.firstIndex(of: filename) { pinned[p] = new; savePins() }
         sort()
+        onRename.forEach { $0(filename, new) }
         return new
     }
 
@@ -100,6 +105,7 @@ final class NoteStore {
         notes.removeAll { $0.filename == filename }
         dirty.remove(filename)
         if pinned.contains(filename) { pinned.removeAll { $0 == filename }; savePins() }
+        onDelete.forEach { $0(filename) }
     }
 
     @discardableResult func duplicate(_ filename: String) -> Note {
@@ -207,8 +213,10 @@ final class NoteStore {
                 diskModified[name] = m
             }
         }
-        notes.removeAll { onDisk[$0.filename] == nil && !dirty.contains($0.filename) && !evicted.contains($0.filename) }
+        let gone = notes.filter { onDisk[$0.filename] == nil && !dirty.contains($0.filename) && !evicted.contains($0.filename) }
+        notes.removeAll { n in gone.contains { $0.filename == n.filename } }
         sort()
+        for n in gone { onDelete.forEach { $0(n.filename) } }
     }
 
     // MARK: - Loading

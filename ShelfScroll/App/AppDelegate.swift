@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var noteStore: NoteStore!
     private(set) var notes: NotesController!
     private var search: GlobalSearch!
+    private var stickies: StickyManager!
     private let searchRoot = OSAllocatedUnfairLock(initialState: URL(fileURLWithPath: "/"))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -109,8 +110,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         shelf.descriptors = shelf.descriptors.map { d in
             guard d.id == .notes else { return d }
-            return PanelDescriptor(id: .notes, title: "Notes") { AnyView(NotesPanel(controller: notes)) }
+            return PanelDescriptor(id: .notes, title: "Notes") { [weak self] in
+                AnyView(NotesPanel(controller: notes, onFloat: { self?.stickies.open($0) }))
+            }
         }
+        stickies = StickyManager(store: noteStore, settings: settings)
+        stickies.restore()
     }
 
     private func setUpSearch() {

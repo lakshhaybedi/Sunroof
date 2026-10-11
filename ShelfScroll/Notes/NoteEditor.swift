@@ -57,9 +57,12 @@ final class NotesController {
 }
 
 struct NoteEditor: NSViewRepresentable {
-    let controller: NotesController
+    let store: NoteStore
     let filename: String
     let fontSize: CGFloat
+    var selection = 0
+    var onTextView: (NoteTextView) -> Void = { _ in }
+    var onFocus: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -72,20 +75,20 @@ struct NoteEditor: NSViewRepresentable {
         scroll.autohidesScrollers = true
         tv.minSize = NSSize(width: 0, height: 0)
         tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        controller.textView = tv
-        context.coordinator.attach(tv, controller: controller)
-        load(tv, context: context, selection: controller.settings.lastNoteSelection)
+        onTextView(tv)
+        context.coordinator.attach(tv)
+        load(tv, context: context, selection: selection)
         return scroll
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let tv = scroll.documentView as? NoteTextView else { return }
-        controller.textView = tv
+        onTextView(tv)
         tv.fontSize = fontSize
         if context.coordinator.filename != filename {
             load(tv, context: context, selection: 0)
-        } else if let note = controller.store.note(filename), note.revision != context.coordinator.revision {
-            context.coordinator.revision = note.revision // replaced from disk (sync) — reload, keep caret
+        } else if let note = store.note(filename), note.revision != context.coordinator.revision {
+            context.coordinator.revision = note.revision // replaced from disk (sync) or appended — reload, keep caret
             let sel = tv.selectedRange()
             tv.load(note.text)
             tv.setSelectedRange(NSRange(location: min(sel.location, (note.text as NSString).length), length: 0))
@@ -96,10 +99,9 @@ struct NoteEditor: NSViewRepresentable {
 
     private func load(_ tv: NoteTextView, context: Context, selection: Int) {
         context.coordinator.filename = filename
-        context.coordinator.revision = controller.store.note(filename)?.revision ?? 0
-        let store = controller.store
-        let settings = controller.settings
-        tv.onFocus = { settings.lastPanel = .notes }
+        context.coordinator.revision = store.note(filename)?.revision ?? 0
+        let (store, filename) = (store, filename)
+        tv.onFocus = onFocus
         tv.baseURL = store.folder.appendingPathComponent("/", isDirectory: true)
         tv.onTextChange = { text in store.update(filename, text: text) }
         tv.onImage = { store.saveAttachment($0, for: filename) }
@@ -116,12 +118,12 @@ struct NoteEditor: NSViewRepresentable {
         private var bar: NSHostingView<FormatBar>?
         private var observer: Any?
 
-        func attach(_ tv: NoteTextView, controller: NotesController) {
+        func attach(_ tv: NoteTextView) {
             observer = NotificationCenter.default.addObserver(forName: NSTextView.didChangeSelectionNotification, object: tv,
                                                               queue: .main) { [weak self, weak tv] _ in
                 MainActor.assumeIsolated {
                     guard let self, let tv else { return }
-                    self.update(tv, controller: controller)
+                    self.update(tv)
                 }
             }
         }
@@ -131,9 +133,9 @@ struct NoteEditor: NSViewRepresentable {
             observer = nil
         }
 
-        private func update(_ tv: NoteTextView, controller: NotesController) {
+        private func update(_ tv: NoteTextView) {
             guard let r = tv.selectionRect else { bar?.removeFromSuperview(); bar = nil; return }
-            let host = bar ?? NSHostingView(rootView: FormatBar(controller: controller))
+            let host = bar ?? NSHostingView(rootView: FormatBar { [weak tv] in tv })
             if bar == nil { tv.addSubview(host); bar = host }
             let size = host.fittingSize
             host.frame = NSRect(x: max(4, min(r.minX, tv.bounds.width - size.width - 4)),
@@ -144,7 +146,7 @@ struct NoteEditor: NSViewRepresentable {
 
 /// B I U S · highlight · code · link · conceal · H1 H2 H3 · bullets · numbers · checklist
 struct FormatBar: View {
-    let controller: NotesController
+    let target: () -> NoteTextView?
 
     var body: some View {
         HStack(spacing: 2) {
@@ -171,12 +173,12 @@ struct FormatBar: View {
     }
 
     private func button(_ symbol: String, _ help: String, _ action: @escaping (NoteTextView) -> Void) -> some View {
-        Button { controller.textView.map(action) } label: { Image(systemName: symbol).frame(width: 22, height: 22) }
+        Button { target().map(action) } label: { Image(systemName: symbol).frame(width: 22, height: 22) }
             .buttonStyle(.plain).help(help)
     }
 
     private func text(_ label: String, _ action: @escaping (NoteTextView) -> Void) -> some View {
-        Button { controller.textView.map(action) } label: { Text(label).font(.caption.bold()).frame(width: 22, height: 22) }
+        Button { target().map(action) } label: { Text(label).font(.caption.bold()).frame(width: 22, height: 22) }
             .buttonStyle(.plain)
     }
 }

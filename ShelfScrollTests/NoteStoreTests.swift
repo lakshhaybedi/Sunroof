@@ -293,4 +293,45 @@ import Testing
         try write("New.md", "New", modified: .init(timeIntervalSince1970: 2))
         #expect(store().recentNoteTitles.map(\.title) == ["New", "Old"])
     }
+
+    // MARK: - Stickies support
+
+    @Test func renameNotifies() {
+        let s = store()
+        var events: [String] = []
+        s.onRename.append { events.append("\($0)→\($1)") }
+        let n = s.create()
+        s.update(n.filename, text: "Groceries")
+        s.finishEditing(n.filename)
+        #expect(events == ["Untitled.md→Groceries.md"])
+    }
+
+    @Test func deleteNotifies() throws {
+        try write("A.md", "A")
+        let s = store()
+        var deleted: [String] = []
+        s.onDelete.append { deleted.append($0) }
+        try s.delete("A.md")
+        #expect(deleted == ["A.md"])
+    }
+
+    @Test func externalDeleteNotifies() throws {
+        try write("A.md", "A")
+        let s = store()
+        var deleted: [String] = []
+        s.onDelete.append { deleted.append($0) }
+        try FileManager.default.removeItem(at: folder.appendingPathComponent("A.md"))
+        s.syncFromDisk()
+        #expect(deleted == ["A.md"])
+    }
+
+    // Review Focus 1: the same note edited from two editors — last text wins, saved once.
+    @Test func twoEditorsUpdateSameNote() throws {
+        let s = store()
+        let n = s.create(text: "A")
+        s.update(n.filename, text: "A\none")
+        s.update(n.filename, text: "A\none two")
+        s.saveAll()
+        #expect(try read(n.filename) == "A\none two")
+    }
 }

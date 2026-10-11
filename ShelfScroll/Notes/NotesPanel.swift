@@ -3,6 +3,7 @@ import SwiftUI
 
 struct NotesPanel: View {
     let controller: NotesController
+    var onFloat: ((String) -> Void)? = nil
     @State private var searching = false
     @State private var query = ""
     @State private var hovering = false
@@ -33,7 +34,10 @@ struct NotesPanel: View {
             }
             Divider()
             if showList { list } else if let current = controller.current {
-                NoteEditor(controller: controller, filename: current, fontSize: settings.noteFontSize)
+                NoteEditor(store: store, filename: current, fontSize: settings.noteFontSize,
+                           selection: settings.lastNoteSelection,
+                           onTextView: { controller.textView = $0 },
+                           onFocus: { settings.lastPanel = .notes })
             }
         }
         .onAppear { if controller.current == nil { controller.restore() } }
@@ -93,6 +97,7 @@ struct NotesPanel: View {
                         .onTapGesture { controller.open(note.filename); DispatchQueue.main.async { controller.focus() } }
                         .contextMenu {
                             Button(store.pinned.contains(note.filename) ? "Unpin" : "Pin") { store.togglePin(note.filename) }
+                            if let onFloat { Button("Float as Sticky") { onFloat(note.filename) } }
                             Button("Show in Finder") {
                                 NSWorkspace.shared.activateFileViewerSelecting([store.folder.appendingPathComponent(note.filename)])
                             }

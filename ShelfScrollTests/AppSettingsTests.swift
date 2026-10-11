@@ -90,4 +90,9 @@ import Testing
         #expect(t.notesFolder.path == "/tmp/n")
         #expect(t.lastNote == "Ideas.md")
     }
+
+    @Test func stickiesPersist() {
+        AppSettings(defaults: defaults).stickies = ["A.md": "{{10, 20}, {280, 320}}"]
+        #expect(AppSettings(defaults: defaults).stickies == ["A.md": "{{10, 20}, {280, 320}}"])
+    }
 }
