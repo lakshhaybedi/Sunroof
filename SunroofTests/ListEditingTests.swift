@@ -76,6 +76,20 @@ func render(_ t: TextEdit?) -> String? {
         #expect(render(ListEditing.toggleInline(te("‹u›"), open: "<u>", close: "</u>")) == "<u>‹u›</u>")
     }
 
+    // Feedback: a selection that includes the line break (triple-click / drag to line end) wrapped markers
+    // across lines, so they never matched and showed raw. Formatting trims to the line's text.
+    @Test func toggleInlineTrimsLineBreakAndListMarker() {
+        #expect(render(ListEditing.toggleInline(te("a\n‹4. This is a sentence\n›5. b"), open: "~~", close: "~~"))
+                == "a\n4. ~~‹This is a sentence›~~\n5. b")
+        #expect(render(ListEditing.toggleInline(te("‹ab ›c"), open: "**", close: "**")) == "**‹ab›** c")
+    }
+
+    @Test func toggleInlineAcrossLinesWrapsEachLine() {
+        let wrapped = ListEditing.toggleInline(te("‹- a\n- b›"), open: "**", close: "**")
+        #expect(render(wrapped) == "‹- **a**\n- **b**›")
+        #expect(render(ListEditing.toggleInline(wrapped, open: "**", close: "**")) == "‹- a\n- b›")
+    }
+
     @Test func toggleBlock() {
         #expect(render(ListEditing.toggleBlock(te("- x|"), .heading(2))) == "## x|")
         #expect(render(ListEditing.toggleBlock(te("## x|"), .heading(2))) == "x|")

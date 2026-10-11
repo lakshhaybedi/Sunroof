@@ -142,7 +142,10 @@ final class NoteTextView: NSTextView {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
         guard !hasMarkedText(), let ns = textStorage?.string as NSString? else { return }
         let start = ns.lineRange(for: NSRange(location: min(selectedRange().location, ns.length), length: 0)).location
-        guard start != caretLineStart else { return }
+        guard start != caretLineStart else {
+            restyle(paragraphsIn: NSRange(location: start, length: 0)) // caret moved within the line: which span is active changed
+            return
+        }
         let old = caretLineStart
         caretLineStart = start
         if let old, old <= ns.length { restyle(paragraphsIn: NSRange(location: old, length: 0)) }
@@ -262,7 +265,8 @@ final class NoteTextView: NSTextView {
         let start = ns.lineRange(for: NSRange(location: min(range.location, ns.length), length: 0)).location
         var end = toEnd ? ns.length : NSMaxRange(ns.lineRange(for: NSRange(location: min(NSMaxRange(range), ns.length), length: 0)))
         var inCode = codeState(before: start, in: ns)
-        let caretStart = ns.lineRange(for: NSRange(location: min(selectedRange().location, ns.length), length: 0)).location
+        let caretLocation = min(selectedRange().location, ns.length)
+        let caretStart = ns.lineRange(for: NSRange(location: caretLocation, length: 0)).location
         ts.beginEditing()
         var loc = start
         repeat {
@@ -272,7 +276,8 @@ final class NoteTextView: NSTextView {
             ts.setAttributes(baseAttributes, range: line)
             let text = ns.substring(with: content)
             let fence = MarkdownStyler.isFence(text)
-            style(content, text: text, inCode: inCode, caret: line.location == caretStart, in: ts)
+            style(content, text: text, inCode: inCode, caret: line.location == caretStart,
+                  caretInLine: caretLocation - content.location, in: ts)
             if fence { inCode.toggle(); end = ns.length } // a fence changes everything below it
             restyledLineCount += 1
             loc = NSMaxRange(line)
@@ -297,8 +302,24 @@ final class NoteTextView: NSTextView {
         return inCode
     }
 
-    private func style(_ content: NSRange, text: String, inCode: Bool, caret: Bool, in ts: NSTextStorage) {
+    private func style(_ content: NSRange, text: String, inCode: Bool, caret: Bool, caretInLine: Int, in ts: NSTextStorage) {
         let style = MarkdownStyler.parse(text, inCodeBlock: inCode)
+        // Inline markers show only for the span the caret is in (open marker … close marker).
+        var markerGroup: [NSRange: NSRange] = [:]
+        let spans = style.spans
+        for i in spans.indices.dropFirst().dropLast() where spans[i].kind != .marker {
+            let (o, c) = (spans[i - 1], spans[i + 1])
+            guard o.kind == .marker, c.kind == .marker, NSMaxRange(o.range) == spans[i].range.location,
+                  NSMaxRange(spans[i].range) == c.range.location else { continue }
+            let group = NSUnionRange(o.range, c.range)
+            markerGroup[o.range] = group
+            markerGroup[c.range] = group
+        }
+        func markerActive(_ local: NSRange) -> Bool {
+            guard caret else { return false }
+            guard let g = markerGroup[local] else { return true } // block markers ("# ", "> ") show on the caret line
+            return caretInLine >= g.location && caretInLine <= NSMaxRange(g)
+        }
         let at = { (r: NSRange) in NSRange(location: content.location + r.location, length: r.length) }
         let indent = text.prefix { $0 == "\t" || $0 == " " }.utf16.count
         let blockMarker = style.spans.first { $0.kind == .marker && $0.range.location == 0 }.map { at($0.range) }
@@ -361,7 +382,7 @@ final class NoteTextView: NSTextView {
             switch span.kind {
             case .marker:
                 if handledBlockMarker, r == blockMarker { continue }
-                if caret {
+                if markerActive(span.range) {
                     ts.addAttribute(.foregroundColor, value: Self.activeMarkerColor, range: r)
                 } else {
                     ts.addAttributes([.foregroundColor: Self.markerColor, .font: NSFont.systemFont(ofSize: fontSize * 0.6)], range: r)

@@ -172,7 +172,54 @@ enum ListEditing {
 
     // MARK: - Inline formatting
 
+    /// Wraps/unwraps the selection. Markers never span lines (styling is per line): the selection is trimmed to
+    /// the line's text (no line break, surrounding spaces or list marker), and multi-line selections wrap each line.
     static func toggleInline(_ t: TextEdit, open: String, close: String) -> TextEdit {
+        guard t.selection.length > 0 else { return toggleInlineSpan(t, open: open, close: close) }
+        let l = Lines(t.text)
+        let rows = l.range(t.selection)
+        // The part of each selected line that can be formatted.
+        let spans: [NSRange] = rows.compactMap { r in
+            let lineStart = l.start(r), lineEnd = l.end(r)
+            let start = max(t.selection.location, lineStart + prefix(l.lines[r]).length)
+            let end = min(NSMaxRange(t.selection), lineEnd)
+            return trimmed(NSRange(location: start, length: max(0, end - start)), in: t.text as NSString)
+        }
+        guard !spans.isEmpty else { return t }
+        if spans.count == 1 {
+            return toggleInlineSpan(TextEdit(text: t.text, selection: spans[0]), open: open, close: close)
+        }
+        // Multi-line: unwrap if every line is already wrapped, else wrap each; work bottom-up so offsets stay valid.
+        let ns = t.text as NSString
+        let o = (open as NSString).length, c = (close as NSString).length
+        let allWrapped = spans.allSatisfy { r in
+            let inner = ns.substring(with: r)
+            return r.length >= o + c && inner.hasPrefix(open) && inner.hasSuffix(close)
+        }
+        let m = NSMutableString(string: t.text)
+        for r in spans.reversed() {
+            if allWrapped {
+                m.deleteCharacters(in: NSRange(location: NSMaxRange(r) - c, length: c))
+                m.deleteCharacters(in: NSRange(location: r.location, length: o))
+            } else {
+                m.insert(close, at: NSMaxRange(r))
+                m.insert(open, at: r.location)
+            }
+        }
+        let nl = Lines(m as String)
+        let s = nl.start(rows.lowerBound)
+        return TextEdit(text: m as String, selection: NSRange(location: s, length: nl.end(rows.upperBound) - s))
+    }
+
+    private static func trimmed(_ r: NSRange, in ns: NSString) -> NSRange? {
+        var start = r.location, end = NSMaxRange(r)
+        let ws = CharacterSet.whitespacesAndNewlines
+        while start < end, let u = UnicodeScalar(ns.character(at: start)), ws.contains(u) { start += 1 }
+        while end > start, let u = UnicodeScalar(ns.character(at: end - 1)), ws.contains(u) { end -= 1 }
+        return end > start ? NSRange(location: start, length: end - start) : nil
+    }
+
+    private static func toggleInlineSpan(_ t: TextEdit, open: String, close: String) -> TextEdit {
         let ns = t.text as NSString
         let sel = t.selection
         let o = (open as NSString).length, c = (close as NSString).length

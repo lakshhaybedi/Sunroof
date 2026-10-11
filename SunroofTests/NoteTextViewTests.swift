@@ -88,4 +88,14 @@ import Testing
         tv.insertText("x", replacementRange: tv.selectedRange())
         #expect(tv.placeholder == nil)
     }
+
+    // Feedback: "you can see the html code" — on the caret line only the span the caret is in shows its markers.
+    @Test func onlyMarkersAroundCaretShow() {
+        let tv = view("**b** and <u>u</u>", caret: 2) // caret inside **b**
+        #expect(color(tv, at: 0) == NoteTextView.activeMarkerColor)   // "**" of the bold span
+        #expect(color(tv, at: 10) == NoteTextView.markerColor)        // "<u>" — caret isn't in it
+        tv.setSelectedRange(NSRange(location: 14, length: 0))         // inside <u>u</u>
+        #expect(color(tv, at: 10) == NoteTextView.activeMarkerColor)
+        #expect(color(tv, at: 0) == NoteTextView.markerColor)
+    }
 }
