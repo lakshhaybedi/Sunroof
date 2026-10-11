@@ -10,7 +10,13 @@ final class NotesController {
     private(set) var current: String?
     @ObservationIgnored weak var textView: NoteTextView?
 
-    static let welcome = "Welcome to Sunroof\n\n- [ ] Try a checklist\n- **Bold**, *italic*, ==highlight==\n1. Numbered lists renumber themselves"
+    static let welcome = """
+    Welcome to Sunroof
+
+    - [ ] Click a box to tick it — type [] and a space (or ⇧⌘L, or the ☑︎ button above) to add one
+    - [ ] Select text for the formatting bar: **bold**, *italic*, ==highlight==, `code`
+    1. Numbered lists renumber themselves; Tab indents
+    """
 
     init(store: NoteStore, settings: AppSettings) {
         self.store = store

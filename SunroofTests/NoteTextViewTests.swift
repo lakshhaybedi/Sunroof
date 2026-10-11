@@ -80,4 +80,12 @@ import Testing
         tv.insertText("x", replacementRange: tv.selectedRange())
         #expect(tv.restyledLineCount <= 3)
     }
+
+    // Feedback: no indication of how to add a checkbox — an empty note shows a hint.
+    @Test func emptyNoteShowsHint() {
+        let tv = view("")
+        #expect(tv.placeholder?.contains("[]") == true)
+        tv.insertText("x", replacementRange: tv.selectedRange())
+        #expect(tv.placeholder == nil)
+    }
 }

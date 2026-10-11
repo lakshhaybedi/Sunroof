@@ -32,6 +32,9 @@ final class NoteTextView: NSTextView {
     var onTextChange: ((String) -> Void)?
     /// Saves pasted/dropped image data and returns its markdown path (e.g. "attachments/x.png").
     var onImage: ((Data) -> String?)?
+    static let hint = "Title on the first line · type [] and a space for a checkbox · select text for formatting"
+    /// Shown in an empty note so the markdown shortcuts are discoverable.
+    var placeholder: String? { string.isEmpty ? Self.hint : nil }
     var restyledLineCount = 0 // instrumentation for the incremental-restyle test
     var onFocus: (() -> Void)?
 
@@ -434,6 +437,10 @@ final class NoteTextView: NSTextView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        if let placeholder {
+            (placeholder as NSString).draw(at: NSPoint(x: textContainerOrigin.x + 5, y: textContainerOrigin.y),
+                                           withAttributes: [.font: baseFont, .foregroundColor: NSColor.placeholderTextColor])
+        }
         guard let lm = layoutManager, let tc = textContainer, let ts = textStorage, ts.length > 0 else { return }
         let glyphs = lm.glyphRange(forBoundingRect: visibleRect.offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y), in: tc)
         let chars = lm.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)

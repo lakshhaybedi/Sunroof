@@ -19,6 +19,10 @@ struct NotesPanel: View {
         VStack(spacing: 0) {
             PanelHeader(title: "Notes") {
                 HeaderButton(symbol: "plus", help: "New Note") { controller.newNote() }
+                HeaderButton(symbol: "checklist", help: "Checklist (⇧⌘L) — or type [] and a space") {
+                    if showList { controller.newNote() }
+                    DispatchQueue.main.async { controller.textView?.toggleBlock(.checklist); controller.focus() }
+                }
                 HeaderButton(symbol: "list.bullet", help: "All Notes", active: showList) { toggleList() }
                 HeaderButton(symbol: "magnifyingglass", help: "Search", active: searching) {
                     searching.toggle()
