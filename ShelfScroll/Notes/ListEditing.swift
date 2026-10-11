@@ -112,8 +112,11 @@ enum ListEditing {
     static func renumber(_ text: String) -> String {
         var l = Lines(text)
         var counters: [Int: Int] = [:] // indent level → next number
+        var inCode = false
         for i in l.lines.indices {
             let line = l.lines[i]
+            if MarkdownStyler.isFence(line) { inCode.toggle(); counters.removeAll(); continue }
+            if inCode { continue } // never edit code
             let p = prefix(line)
             switch p.block {
             case let .numbered(level, own):

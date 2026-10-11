@@ -33,8 +33,9 @@ final class NoteTextView: NSTextView {
     /// Saves pasted/dropped image data and returns its markdown path (e.g. "attachments/x.png").
     var onImage: ((Data) -> String?)?
     var restyledLineCount = 0 // instrumentation for the incremental-restyle test
+    var onFocus: (() -> Void)?
 
-    private var pending: (location: Int, length: Int, fence: Bool)?
+    private var pending: (location: Int, length: Int, fence: Bool)? // union of ranges changed in one edit
     private var caretLineStart: Int?
     private var revealed = Set<Int>()
     private var loading = false
@@ -101,13 +102,26 @@ final class NoteTextView: NSTextView {
     override func shouldChangeText(in range: NSRange, replacementString s: String?) -> Bool {
         guard super.shouldChangeText(in: range, replacementString: s) else { return false }
         let removed = (string as NSString).substring(with: range)
-        pending = (range.location, (s as NSString?)?.length ?? range.length,
+        let new = (range.location, (s as NSString?)?.length ?? range.length,
                    removed.contains("```") || (s?.contains("```") ?? false))
+        if let p = pending { // several ranges in one edit (Replace All): restyle their union
+            let start = min(p.location, new.0)
+            pending = (start, max(p.location + p.length, new.0 + new.1) - start, p.fence || new.2)
+        } else {
+            pending = new
+        }
         return true
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let ok = super.becomeFirstResponder()
+        if ok { onFocus?() }
+        return ok
     }
 
     override func didChangeText() {
         super.didChangeText()
+        if hasMarkedText() { revealed.removeAll(); return } // IME composing: restyle when the text is committed
         if let p = pending {
             restyle(paragraphsIn: NSRange(location: p.location, length: p.length), toEnd: p.fence)
             pending = nil
@@ -116,9 +130,14 @@ final class NoteTextView: NSTextView {
         if !loading { onTextChange?(string) }
     }
 
+    override func unmarkText() {
+        super.unmarkText()
+        if let p = pending { restyle(paragraphsIn: NSRange(location: p.location, length: p.length)); pending = nil }
+    }
+
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
-        guard let ns = textStorage?.string as NSString? else { return }
+        guard !hasMarkedText(), let ns = textStorage?.string as NSString? else { return }
         let start = ns.lineRange(for: NSRange(location: min(selectedRange().location, ns.length), length: 0)).location
         guard start != caretLineStart else { return }
         let old = caretLineStart

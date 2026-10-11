@@ -5,6 +5,11 @@ enum PanelID: String, CaseIterable, Codable {
     case clipboard, files, notes
 }
 
+extension Notification.Name {
+    /// Posted when the shelf opens to give a column keyboard focus (object: PanelID raw value).
+    static let shelfFocusPanel = Notification.Name("ShelfScroll.focusPanel")
+}
+
 struct PanelDescriptor {
     let id: PanelID
     let title: String

@@ -80,22 +80,24 @@ enum MarkdownStyler {
 
     /// (regex, kind, opening marker length, closing marker length). Order matters: earlier kinds claim their markers first.
     private static let inlineRules: [(NSRegularExpression, SpanKind, Int, Int)] = [
-        (try! NSRegularExpression(pattern: "\\|\\|(?=\\S)(.+?)(?<=\\S)\\|\\|"), .conceal, 2, 2),
-        (try! NSRegularExpression(pattern: "\\*\\*(?=\\S)(.+?)(?<=\\S)\\*\\*"), .bold, 2, 2),
-        (try! NSRegularExpression(pattern: "(?<![\\w])__(?=\\S)(.+?)(?<=\\S)__(?![\\w])"), .bold, 2, 2),
-        (try! NSRegularExpression(pattern: "~~(?=\\S)(.+?)(?<=\\S)~~"), .strike, 2, 2),
-        (try! NSRegularExpression(pattern: "<u>(.+?)</u>"), .underline, 3, 4),
-        (try! NSRegularExpression(pattern: "==(?=\\S)(.+?)(?<=\\S)=="), .highlight, 2, 2),
-        (try! NSRegularExpression(pattern: "(?<![*\\w])\\*(?=[^\\s*])(.+?)(?<=[^\\s*])\\*(?!\\*)"), .italic, 1, 1),
-        (try! NSRegularExpression(pattern: "(?<![\\w_])_(?=[^\\s_])(.+?)(?<=[^\\s_])_(?![\\w_])"), .italic, 1, 1),
+        (try! NSRegularExpression(pattern: "\\|\\|(?=\\S)(.{1,1000}?)(?<=\\S)\\|\\|"), .conceal, 2, 2),
+        (try! NSRegularExpression(pattern: "\\*\\*(?=\\S)(.{1,1000}?)(?<=\\S)\\*\\*"), .bold, 2, 2),
+        (try! NSRegularExpression(pattern: "(?<![\\w])__(?=\\S)(.{1,1000}?)(?<=\\S)__(?![\\w])"), .bold, 2, 2),
+        (try! NSRegularExpression(pattern: "~~(?=\\S)(.{1,1000}?)(?<=\\S)~~"), .strike, 2, 2),
+        (try! NSRegularExpression(pattern: "<u>(.{1,1000}?)</u>"), .underline, 3, 4),
+        (try! NSRegularExpression(pattern: "==(?=\\S)(.{1,1000}?)(?<=\\S)=="), .highlight, 2, 2),
+        (try! NSRegularExpression(pattern: "(?<![*\\w])\\*(?=[^\\s*])(.{1,1000}?)(?<=[^\\s*])\\*(?!\\*)"), .italic, 1, 1),
+        (try! NSRegularExpression(pattern: "(?<![\\w_])_(?=[^\\s_])(.{1,1000}?)(?<=[^\\s_])_(?![\\w_])"), .italic, 1, 1),
     ]
     private static let codeSpan = try! NSRegularExpression(pattern: "`([^`]+)`")
     private static let link = try! NSRegularExpression(pattern: "\\[([^\\]]+)\\]\\(([^)\\s]+)\\)")
     private static let bareURL = try! NSRegularExpression(pattern: "https?://[^\\s<>()]+")
 
+    static let maxInlineLength = 5_000 // longer lines (minified/base64 pastes) get no inline styling
+
     private static func inline(_ ns: NSString, from start: Int) -> [MarkSpan] {
         let range = NSRange(location: start, length: ns.length - start)
-        guard range.length > 0 else { return [] }
+        guard range.length > 0, ns.length <= maxInlineLength else { return [] }
         var spans: [MarkSpan] = []
         var opaque: [NSRange] = []   // code spans and links: nothing else inside
         var markers: [NSRange] = []  // claimed delimiter ranges

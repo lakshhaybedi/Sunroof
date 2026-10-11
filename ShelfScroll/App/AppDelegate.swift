@@ -94,10 +94,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         syncNotesFolder()
         let notes = notes!
         shelf.onHide.append { notes.finish() }
+        noteStore.onSaveError = { Toast.show($0) }
         shelf.onShow.append { [weak self] in
-            // Typing goes straight into the note unless the shelf was opened for another column.
-            guard let self, self.shelf.requestedFocus == nil, self.settings.enabledPanels.contains(.notes) else { return }
-            notes.focus()
+            // Keyboard goes to the column used last (Notes by default) unless the shelf was opened for a specific one.
+            guard let self, self.shelf.requestedFocus == nil else { return }
+            let panel = self.settings.lastPanel
+            guard self.settings.enabledPanels.contains(panel) else { return }
+            if panel == .notes { notes.focus() }
+            else { NotificationCenter.default.post(name: .shelfFocusPanel, object: panel.rawValue) }
         }
         shelf.descriptors = shelf.descriptors.map { d in
             guard d.id == .notes else { return d }

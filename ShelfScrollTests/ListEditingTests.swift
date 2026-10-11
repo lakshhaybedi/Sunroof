@@ -53,6 +53,11 @@ func render(_ t: TextEdit?) -> String? {
                 "1. a\n2. b\n\t1. x\n\t2. y\n3. c\ntext\n3. d")
     }
 
+    // Review I7: renumbering never touches fenced code.
+    @Test func renumberSkipsCode() {
+        #expect(ListEditing.renumber("1. a\n1. b\n```\n1. x\n1. y\n```\n1. c") == "1. a\n2. b\n```\n1. x\n1. y\n```\n1. c")
+    }
+
     @Test func toggleCheckbox() {
         #expect(ListEditing.toggleCheckbox(lineContaining: 7, in: "x\n- [ ] a") == "x\n- [x] a")
         #expect(ListEditing.toggleCheckbox(lineContaining: 0, in: "- [x] a") == "- [ ] a")

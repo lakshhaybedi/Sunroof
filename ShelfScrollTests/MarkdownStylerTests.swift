@@ -82,6 +82,14 @@ private func sorted(_ spans: [MarkSpan]) -> [MarkSpan] {
         #expect(spans == [s(0, 2, .marker), s(2, 2, .marker), s(4, 1, .bold), s(5, 2, .marker)])
     }
 
+    // Review I9: pathological long lines parse fast (no regex blow-up).
+    @Test func longLineIsFast() {
+        let line = String(repeating: "**x ", count: 25_000)
+        let start = ContinuousClock.now
+        _ = MarkdownStyler.parse(line, inCodeBlock: false)
+        #expect(ContinuousClock.now - start < .milliseconds(200))
+    }
+
     @Test func fenceDetection() {
         #expect(MarkdownStyler.isFence("```"))
         #expect(MarkdownStyler.isFence("  ```js"))

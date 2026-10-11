@@ -6,6 +6,8 @@ struct Note: Identifiable, Equatable {
     var filename: String
     var text: String
     var modified: Date
+    /// Bumped only when the text is replaced from disk (sync) — the editor reloads on change, never on typing.
+    var revision = 0
     var title: String { NoteStore.title(of: text) }
     var preview: String { NoteStore.preview(of: text) }
 }
@@ -23,6 +25,9 @@ final class NoteStore {
     @ObservationIgnored private var diskModified: [String: Date] = [:]
     @ObservationIgnored private var pendingSave: Task<Void, Never>?
     @ObservationIgnored private var watcher: FolderWatcher?
+    @ObservationIgnored private var reportedFailures = Set<String>()
+    /// Called once per note when a save fails (permission denied, disk full, volume offline).
+    @ObservationIgnored var onSaveError: ((String) -> Void)?
 
     init(folder: URL, trash: @escaping (URL) throws -> Void = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }) {
         self.folder = folder
@@ -38,7 +43,7 @@ final class NoteStore {
     // MARK: - Editing
 
     @discardableResult func create(text: String = "") -> Note {
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        ensureFolder()
         let name = uniqueDestination(for: "Untitled.md", in: folder).lastPathComponent
         let note = Note(filename: name, text: text, modified: .now)
         notes.append(note)
@@ -47,10 +52,16 @@ final class NoteStore {
         return note
     }
 
+    /// Called on every keystroke (no text comparison — that's O(n) for huge notes).
     func update(_ filename: String, text: String) {
-        guard let i = notes.firstIndex(where: { $0.filename == filename }), notes[i].text != text else { return }
-        notes[i].text = text
-        notes[i].modified = .now
+        if let i = notes.firstIndex(where: { $0.filename == filename }) {
+            notes[i].text = text
+            notes[i].modified = .now
+        } else {
+            // The file vanished under the editor (renamed/deleted elsewhere): keep the text; the save recreates it.
+            notes.append(Note(filename: filename, text: text, modified: .now))
+            sort()
+        }
         dirty.insert(filename)
         edited.insert(filename)
         scheduleSave()
@@ -63,7 +74,9 @@ final class NoteStore {
         let title = notes[i].title
         guard !title.isEmpty else { return filename }
         let desired = Self.filename(forTitle: title)
-        guard desired != filename else { return filename }
+        // Already "<title>.md" or "<title> N.md": keep it (renaming would flip-flop between duplicates).
+        let base = NSRegularExpression.escapedPattern(for: (desired as NSString).deletingPathExtension)
+        if filename.range(of: "^\(base)( \\d+)?\\.md$", options: [.regularExpression, .caseInsensitive]) != nil { return filename }
         let dest = desired.lowercased() == filename.lowercased() ? url(desired) : uniqueDestination(for: desired, in: folder)
         guard (try? FileManager.default.moveItem(at: url(filename), to: dest)) != nil else { return filename }
         let new = dest.lastPathComponent
@@ -106,7 +119,7 @@ final class NoteStore {
     func saveAttachment(_ png: Data, for filename: String) -> String {
         let dir = folder.appendingPathComponent("attachments")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let base = (filename as NSString).deletingPathExtension
+        let base = (filename as NSString).deletingPathExtension.replacingOccurrences(of: " ", with: "-") // markdown paths can't hold spaces
         var n = 1
         while FileManager.default.fileExists(atPath: dir.appendingPathComponent("\(base)-\(n).png").path) { n += 1 }
         try? png.write(to: dir.appendingPathComponent("\(base)-\(n).png"), options: .atomic)
@@ -115,11 +128,38 @@ final class NoteStore {
 
     // MARK: - Saving & syncing
 
+    func hasUnsavedChanges(_ filename: String) -> Bool { dirty.contains(filename) }
+
+    /// Writes every unsaved note. If a file changed on disk since we last read it (in-place editors, sync inside
+    /// the watcher's debounce), their version is kept as a conflict copy first. Failed writes stay unsaved.
     func saveAll() {
         pendingSave?.cancel()
         pendingSave = nil
-        for name in dirty { if let n = note(name) { write(name, n.text) } }
-        dirty.removeAll()
+        for name in dirty {
+            guard let n = note(name) else { dirty.remove(name); continue }
+            let fileURL = url(name)
+            if let m = mtime(name), m != diskModified[name], let theirs = Self.read(fileURL), theirs != n.text {
+                writeConflictCopy(theirs, for: name)
+            }
+            if write(name, n.text) {
+                dirty.remove(name)
+                reportedFailures.remove(name)
+            } else if reportedFailures.insert(name).inserted {
+                onSaveError?("Couldn't save “\(n.title.isEmpty ? name : n.title)”. Check that the Notes folder is available.")
+            }
+        }
+    }
+
+    private func writeConflictCopy(_ text: String, for name: String) {
+        let day = Date.now.formatted(.iso8601.year().month().day())
+        let base = (name as NSString).deletingPathExtension
+        try? Data(text.utf8).write(to: uniqueDestination(for: "\(base) (conflict \(day)).md", in: folder), options: .atomic)
+    }
+
+    private func ensureFolder() {
+        guard !FileManager.default.fileExists(atPath: folder.path) else { return }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        watcher = FolderWatcher(url: folder) { [weak self] in self?.syncFromDisk() } // none could exist before
     }
 
     private func scheduleSave() {
@@ -131,43 +171,43 @@ final class NoteStore {
         }
     }
 
-    private func write(_ name: String, _ text: String) {
-        try? Data(text.utf8).write(to: url(name), options: .atomic)
+    @discardableResult private func write(_ name: String, _ text: String) -> Bool {
+        ensureFolder()
+        guard (try? Data(text.utf8).write(to: url(name), options: .atomic)) != nil else { return false }
         diskModified[name] = mtime(name)
+        return true
     }
 
     /// Reconciles with the folder after an external change (sync from another Mac, another editor).
     func syncFromDisk() {
-        let onDisk = Dictionary(uniqueKeysWithValues: markdownFiles().map { ($0.lastPathComponent, $0) })
+        let (files, evicted) = listing()
+        let onDisk = Dictionary(uniqueKeysWithValues: files.map { ($0.lastPathComponent, $0) })
         for (name, fileURL) in onDisk {
             let m = mtime(name)
             if let i = notes.firstIndex(where: { $0.filename == name }) {
                 guard m != diskModified[name], let text = Self.read(fileURL) else { continue }
+                diskModified[name] = m
+                guard text != notes[i].text else { continue } // same content: not a conflict
                 if dirty.contains(name) {
-                    // Keep local edits; preserve theirs next to it.
-                    let day = Date.now.formatted(.iso8601.year().month().day())
-                    let base = (name as NSString).deletingPathExtension
-                    let conflict = uniqueDestination(for: "\(base) (conflict \(day)).md", in: folder)
-                    try? Data(text.utf8).write(to: conflict, options: .atomic)
-                    diskModified[name] = m
-                } else if text != notes[i].text {
+                    writeConflictCopy(text, for: name) // keep local edits; preserve theirs next to it
+                } else {
                     notes[i].text = text
                     notes[i].modified = m ?? .now
-                    diskModified[name] = m
+                    notes[i].revision += 1
                 }
             } else if let text = Self.read(fileURL) {
                 notes.append(Note(filename: name, text: text, modified: m ?? .now))
                 diskModified[name] = m
             }
         }
-        notes.removeAll { onDisk[$0.filename] == nil && !dirty.contains($0.filename) }
+        notes.removeAll { onDisk[$0.filename] == nil && !dirty.contains($0.filename) && !evicted.contains($0.filename) }
         sort()
     }
 
     // MARK: - Loading
 
     private func load() {
-        notes = markdownFiles().compactMap { u in
+        notes = listing().files.compactMap { u in
             guard let text = Self.read(u) else { return nil } // unreadable / non-UTF-8: skipped, never rewritten
             let name = u.lastPathComponent
             diskModified[name] = mtime(name)
@@ -178,10 +218,22 @@ final class NoteStore {
         watcher = FolderWatcher(url: folder) { [weak self] in self?.syncFromDisk() }
     }
 
-    private func markdownFiles() -> [URL] {
-        ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey],
-                                                       options: .skipsHiddenFiles)) ?? [])
-            .filter { $0.pathExtension.lowercased() == "md" }
+    /// Visible `.md` files, plus names of notes iCloud has evicted (".Name.md.icloud" placeholders) — those are
+    /// asked to download and are never treated as deleted.
+    private func listing() -> (files: [URL], evicted: Set<String>) {
+        let all = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        var files: [URL] = [], evicted = Set<String>()
+        for u in all {
+            let name = u.lastPathComponent
+            if name.hasPrefix("."), name.hasSuffix(".md.icloud") {
+                let real = String(name.dropFirst().dropLast(".icloud".count))
+                evicted.insert(real)
+                try? FileManager.default.startDownloadingUbiquitousItem(at: folder.appendingPathComponent(real))
+            } else if !name.hasPrefix("."), u.pathExtension.lowercased() == "md" {
+                files.append(u)
+            }
+        }
+        return (files, evicted)
     }
 
     private nonisolated static func read(_ url: URL) -> String? {
@@ -219,7 +271,9 @@ final class NoteStore {
     nonisolated static func filename(forTitle title: String) -> String {
         var t = title.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        t = String(t.drop { $0 == "." }) // a leading dot would make the note a hidden file
         t = String(t.prefix(100)).trimmingCharacters(in: .whitespaces)
+        while t.utf8.count > 250 { t.removeLast() } // filesystem limit is 255 bytes
         return (t.isEmpty ? "Untitled" : t) + ".md"
     }
 

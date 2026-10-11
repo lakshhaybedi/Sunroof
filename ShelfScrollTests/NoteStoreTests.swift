@@ -140,7 +140,107 @@ import Testing
         let s = store()
         let png = pngData(width: 2, height: 2)
         #expect(s.saveAttachment(png, for: "Trip.md") == "attachments/Trip-1.png")
+        #expect(s.saveAttachment(png, for: "Trip Plan.md") == "attachments/Trip-Plan-1.png") // review I6: no spaces
         #expect(s.saveAttachment(png, for: "Trip.md") == "attachments/Trip-2.png")
         #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent("attachments/Trip-2.png").path))
+    }
+
+    // Review C1: typing into a note whose file vanished must bring the file back, not drop the text.
+    @Test func updateRecreatesVanishedNote() throws {
+        try write("A.md", "A\nold")
+        let s = store()
+        try FileManager.default.removeItem(at: folder.appendingPathComponent("A.md"))
+        s.syncFromDisk()
+        s.update("A.md", text: "A\nnew")
+        s.saveAll()
+        #expect(try read("A.md") == "A\nnew")
+        #expect(s.note("A.md")?.text == "A\nnew")
+    }
+
+    // Review C2: an in-place external write (no directory event) is detected at save time → conflict copy.
+    @Test func saveDetectsExternalWriteWithoutWatcher() throws {
+        try write("A.md", "A\nold", modified: .init(timeIntervalSince1970: 1))
+        let s = store()
+        s.update("A.md", text: "A\nmine")
+        try write("A.md", "A\ntheirs")
+        s.saveAll()
+        let day = Date.now.formatted(.iso8601.year().month().day())
+        #expect(try read("A (conflict \(day)).md") == "A\ntheirs")
+        #expect(try read("A.md") == "A\nmine")
+    }
+
+    // Review: identical external content is not a conflict.
+    @Test func identicalExternalChangeIsNotAConflict() throws {
+        try write("A.md", "A\nold", modified: .init(timeIntervalSince1970: 1))
+        let s = store()
+        s.update("A.md", text: "A\nsame")
+        try write("A.md", "A\nsame")
+        s.syncFromDisk()
+        #expect(try files() == ["A.md"])
+    }
+
+    // Review C3: a failed write keeps the note unsaved and reports it.
+    @Test func failedSaveStaysDirtyAndReports() throws {
+        try write("A.md", "A")
+        let s = store()
+        var errors: [String] = []
+        s.onSaveError = { errors.append($0) }
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
+        s.update("A.md", text: "A\nnew")
+        s.saveAll()
+        #expect(s.hasUnsavedChanges("A.md"))
+        #expect(errors.count == 1)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path)
+        s.saveAll()
+        #expect(!s.hasUnsavedChanges("A.md"))
+        #expect(try read("A.md") == "A\nnew")
+    }
+
+    // Review C2c: the folder created on first run gets a watcher.
+    @Test func watcherStartsWhenFolderIsCreated() async throws {
+        let fresh = tempDir().appendingPathComponent("Fresh")
+        let s = NoteStore(folder: fresh)
+        s.create(text: "First")
+        try Data("Second".utf8).write(to: fresh.appendingPathComponent("Second.md"))
+        for _ in 0..<40 where s.note("Second.md") == nil { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(s.note("Second.md") != nil)
+    }
+
+    // Review I4: a note already named "Ideas 2.md" for title "Ideas" keeps its name.
+    @Test func duplicateTitleDoesNotFlipFlop() throws {
+        let s = store()
+        for _ in 0..<2 { let n = s.create(); s.update(n.filename, text: "Ideas"); s.finishEditing(n.filename) }
+        s.update("Ideas 2.md", text: "Ideas\nmore")
+        #expect(s.finishEditing("Ideas 2.md") == "Ideas 2.md")
+    }
+
+    // Review I5: leading dots would hide the file; long names stay within 255 bytes.
+    @Test func leadingDotsStripped() {
+        #expect(NoteStore.filename(forTitle: ".env notes") == "env notes.md")
+        #expect(NoteStore.filename(forTitle: "...") == "Untitled.md")
+        #expect(NoteStore.filename(forTitle: String(repeating: "🙂", count: 100)).utf8.count <= 255)
+    }
+
+    // Review I8: the editor reloads only on external changes — tracked by a revision, not text comparison.
+    @Test func revisionBumpsOnlyOnExternalChange() throws {
+        try write("A.md", "A\nold")
+        let s = store()
+        let r0 = s.note("A.md")!.revision
+        s.update("A.md", text: "A\ntyped")
+        #expect(s.note("A.md")!.revision == r0)
+        s.saveAll()
+        try write("A.md", "A\nexternal")
+        s.syncFromDisk()
+        #expect(s.note("A.md")!.revision == r0 + 1)
+    }
+
+    // Review I11: an iCloud-evicted note (".A.md.icloud" placeholder) isn't dropped.
+    @Test func icloudPlaceholderKeepsNote() throws {
+        try write("A.md", "A")
+        let s = store()
+        try FileManager.default.moveItem(at: folder.appendingPathComponent("A.md"), to: folder.appendingPathComponent(".A.md.icloud"))
+        s.syncFromDisk()
+        #expect(s.note("A.md") != nil)
     }
 }

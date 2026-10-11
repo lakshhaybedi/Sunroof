@@ -38,6 +38,10 @@ struct FilesPanel: View {
             content
         }
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor, lineWidth: dropTargeted ? 3 : 0).padding(2))
+        .onReceive(NotificationCenter.default.publisher(for: .shelfFocusPanel)) { n in
+            if n.object as? String == PanelID.files.rawValue { focused = true }
+        }
+        .onChange(of: focused) { _, f in if f { settings.lastPanel = .files } }
         .onDrop(of: [.fileURL, .url, .image], delegate: FilesDropDelegate(model: model, targeted: $dropTargeted))
     }
 

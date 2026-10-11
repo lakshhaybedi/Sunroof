@@ -47,6 +47,10 @@ struct ClipboardPanel: View {
             case .favorites: true
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .shelfFocusPanel)) { n in
+            if n.object as? String == PanelID.clipboard.rawValue { listFocused = true }
+        }
+        .onChange(of: listFocused) { _, f in if f { settings.lastPanel = .clipboard } }
         .onChange(of: showFavorites) { _, fav in
             settings.lastClipboardView = fav ? .favorites : .history
             selection = nil

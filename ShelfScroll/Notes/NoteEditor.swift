@@ -84,16 +84,22 @@ struct NoteEditor: NSViewRepresentable {
         tv.fontSize = fontSize
         if context.coordinator.filename != filename {
             load(tv, context: context, selection: 0)
-        } else if let note = controller.store.note(filename), note.text != tv.string {
-            let sel = tv.selectedRange() // changed on disk (sync) — reload, keep caret
+        } else if let note = controller.store.note(filename), note.revision != context.coordinator.revision {
+            context.coordinator.revision = note.revision // replaced from disk (sync) — reload, keep caret
+            let sel = tv.selectedRange()
             tv.load(note.text)
             tv.setSelectedRange(NSRange(location: min(sel.location, (note.text as NSString).length), length: 0))
         }
     }
 
+    static func dismantleNSView(_ scroll: NSScrollView, coordinator: Coordinator) { coordinator.detach() }
+
     private func load(_ tv: NoteTextView, context: Context, selection: Int) {
         context.coordinator.filename = filename
+        context.coordinator.revision = controller.store.note(filename)?.revision ?? 0
         let store = controller.store
+        let settings = controller.settings
+        tv.onFocus = { settings.lastPanel = .notes }
         tv.baseURL = store.folder.appendingPathComponent("/", isDirectory: true)
         tv.onTextChange = { text in store.update(filename, text: text) }
         tv.onImage = { store.saveAttachment($0, for: filename) }
@@ -106,6 +112,7 @@ struct NoteEditor: NSViewRepresentable {
     /// Shows the floating formatting bar above a non-empty selection.
     @MainActor final class Coordinator: NSObject {
         var filename: String?
+        var revision = 0
         private var bar: NSHostingView<FormatBar>?
         private var observer: Any?
 
@@ -117,6 +124,11 @@ struct NoteEditor: NSViewRepresentable {
                     self.update(tv, controller: controller)
                 }
             }
+        }
+
+        func detach() {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
         }
 
         private func update(_ tv: NoteTextView, controller: NotesController) {
