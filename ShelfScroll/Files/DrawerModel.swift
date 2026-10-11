@@ -4,8 +4,8 @@ import Observation
 /// The drawer folder: what's in the current folder, navigation, and every file operation.
 @MainActor @Observable
 final class DrawerModel {
-    var root: URL { didSet { root = canonical(root); if current != root { current = root }; reload() } }
-    var isDefaultRoot: Bool
+    private(set) var root: URL
+    private(set) var isDefaultRoot: Bool
     private(set) var current: URL
     private(set) var items: [DrawerItem] = []
     private(set) var rootMissing = false
@@ -25,6 +25,15 @@ final class DrawerModel {
         self.isDefaultRoot = isDefaultRoot
         self.current = canonical(root)
         self.trashItem = trash
+        reload()
+    }
+
+    /// Points the drawer at a new folder. (A method, not a didSet: re-assigning inside didSet recurses under @Observable.)
+    func changeRoot(_ url: URL, isDefault: Bool) {
+        root = canonical(url)
+        isDefaultRoot = isDefault
+        current = root
+        watcher = nil
         reload()
     }
 

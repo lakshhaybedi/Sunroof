@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var drawer: DrawerModel!
     private var cleanup: CleanupScheduler!
     private var screenshots: ScreenshotWatcher!
+    private var noteStore: NoteStore!
+    private(set) var notes: NotesController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests use the app as host; don't show windows or install monitors there.
@@ -25,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shelf = ShelfController(settings: settings)
         setUpClipboard()
         setUpFiles()
+        setUpNotes()
         edgeMonitor = EdgeTriggerMonitor(settings: settings) { [weak self] decision in
             self?.handle(decision)
         }
@@ -85,13 +88,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func setUpNotes() {
+        noteStore = NoteStore(folder: settings.notesFolder)
+        notes = NotesController(store: noteStore, settings: settings)
+        syncNotesFolder()
+        let notes = notes!
+        shelf.onHide.append { notes.finish() }
+        shelf.onShow.append { [weak self] in
+            // Typing goes straight into the note unless the shelf was opened for another column.
+            guard let self, self.shelf.requestedFocus == nil, self.settings.enabledPanels.contains(.notes) else { return }
+            notes.focus()
+        }
+        shelf.descriptors = shelf.descriptors.map { d in
+            guard d.id == .notes else { return d }
+            return PanelDescriptor(id: .notes, title: "Notes") { AnyView(NotesPanel(controller: notes)) }
+        }
+    }
+
+    private func syncNotesFolder() {
+        withObservationTracking {
+            let folder = settings.notesFolder
+            if noteStore.folder.path != folder.path {
+                notes.finish()
+                noteStore.folder = folder
+                notes.restore()
+            }
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.syncNotesFolder() }
+        }
+    }
+
     /// Keep the drawer model in step with Files settings.
     private func syncDrawer() {
         withObservationTracking {
             let root = settings.filesFolder
-            if drawer.root.path != root.path {
-                drawer.isDefaultRoot = settings.isDefaultFilesFolder
-                drawer.root = root
+            if drawer.root.path != canonical(root).path {
+                drawer.changeRoot(root, isDefault: settings.isDefaultFilesFolder)
             } else if drawer.rootMissing {
                 drawer.reload() // re-choosing the same folder after it reappears
             }
@@ -104,6 +136,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         clipStore?.saveSync()
+        notes?.finish()
+        noteStore?.saveAll()
     }
 
     func toggleShelf() {
@@ -131,6 +165,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        edit.addItem(.separator())
+        let find = edit.addItem(withTitle: "Find…", action: #selector(NSTextView.performFindPanelAction(_:)), keyEquivalent: "f")
+        find.tag = Int(NSFindPanelAction.showFindPanel.rawValue)
         let item = NSMenuItem()
         item.submenu = edit
         let main = NSMenu()

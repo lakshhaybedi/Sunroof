@@ -136,4 +136,15 @@ import Testing
         #expect(m.rootMissing)
         #expect(m.items.isEmpty)
     }
+
+    // Regression: changing the root (Files folder setting) used to recurse forever via didSet under @Observable.
+    @Test func changingRootNavigatesToIt() throws {
+        let m = model()
+        let other = tempDir().appendingPathComponent("Other")
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: other.appendingPathComponent("o.txt").path, contents: Data())
+        m.changeRoot(URL(fileURLWithPath: other.path + "//"), isDefault: false)
+        #expect(m.current.path == other.path)
+        #expect(m.items.map(\.name) == ["o.txt"])
+    }
 }
