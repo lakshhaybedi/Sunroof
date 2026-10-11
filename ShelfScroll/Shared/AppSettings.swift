@@ -59,3 +59,11 @@ final class AppSettings {
         defaults.set(value, forKey: "settings." + key)
     }
 }
+
+extension AppSettings {
+    var edgeConfig: EdgeTriggerConfig {
+        EdgeTriggerConfig(scroll: scrollTrigger,
+                          hold: holdTrigger ? holdModifier : nil,
+                          wait: waitTrigger ? waitDelay : nil)
+    }
+}
