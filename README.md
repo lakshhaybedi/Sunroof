@@ -1,4 +1,5 @@
-# Sunroof
+<p align="center"><img src="docs/images/logo.png" alt="Sunroof" width="520"></p>
+
 
 Your clipboard, files and notes, one scroll away. Move the pointer to the very top of the screen and scroll down — a strip slides down with three panels:
 
