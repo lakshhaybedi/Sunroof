@@ -107,7 +107,8 @@ private struct StickyContent: View {
     let settings: AppSettings
 
     var body: some View {
-        NoteEditor(store: store, filename: model.filename, fontSize: settings.noteFontSize)
+        NoteEditor(store: store, filename: model.filename, fontSize: settings.noteFontSize,
+                   noteFont: settings.noteFont, accent: settings.accent.nsColor)
             .frame(minWidth: 180, minHeight: 120)
     }
 }

@@ -148,6 +148,8 @@ struct NoteEditor: NSViewRepresentable {
     let store: NoteStore
     let filename: String
     let fontSize: CGFloat
+    var noteFont: NoteFont = .system
+    var accent: NSColor = .controlAccentColor
     var selection = 0
     var onTextView: (NoteTextView) -> Void = { _ in }
     var onFocus: () -> Void = {}
@@ -156,6 +158,8 @@ struct NoteEditor: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let tv = NoteTextView(fontSize: fontSize)
+        tv.noteFont = noteFont
+        tv.accentColor = accent
         let scroll = NSScrollView()
         scroll.documentView = tv
         scroll.hasVerticalScroller = true
@@ -175,6 +179,8 @@ struct NoteEditor: NSViewRepresentable {
         onTextView(tv)
         tv.onFocus = onFocus
         tv.fontSize = fontSize
+        tv.noteFont = noteFont
+        tv.accentColor = accent
         context.coordinator.binding?.setFilename(filename)
     }
 

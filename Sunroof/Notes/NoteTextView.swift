@@ -31,6 +31,11 @@ final class NoteTextView: NSTextView {
     static let activeMarkerColor = NSColor.secondaryLabelColor
 
     var fontSize: CGFloat = 14 { didSet { if oldValue != fontSize { restyleAll() } } }
+    var noteFont: NoteFont = .system { didSet { if oldValue != noteFont { restyleAll() } } }
+    /// Links, checked boxes and the caret.
+    var accentColor: NSColor = .controlAccentColor {
+        didSet { if oldValue != accentColor { insertionPointColor = accentColor; restyleAll() } }
+    }
     var baseURL: URL?
     var onTextChange: ((String) -> Void)?
     /// Saves pasted/dropped image data and returns its markdown path (e.g. "attachments/x.png").
@@ -273,7 +278,7 @@ final class NoteTextView: NSTextView {
 
     // MARK: - Styling
 
-    private var baseFont: NSFont { .systemFont(ofSize: fontSize) }
+    private var baseFont: NSFont { noteFont.font(ofSize: fontSize) }
 
     private var baseParagraph: NSParagraphStyle {
         let p = NSMutableParagraphStyle()
@@ -362,7 +367,7 @@ final class NoteTextView: NSTextView {
         switch style.block {
         case let .heading(n):
             let scale: CGFloat = [1.6, 1.35, 1.15][min(n, 3) - 1]
-            ts.addAttribute(.font, value: NSFont.systemFont(ofSize: fontSize * scale, weight: .bold), range: content)
+            ts.addAttribute(.font, value: noteFont.font(ofSize: fontSize * scale, weight: .bold), range: content)
         case .fence:
             ts.addAttributes([.font: NSFont.monospacedSystemFont(ofSize: fontSize * 0.92, weight: .regular),
                               .foregroundColor: caret ? Self.activeMarkerColor : Self.markerColor], range: content)
@@ -432,7 +437,7 @@ final class NoteTextView: NSTextView {
                 decorate(r, .conceal)
             case .conceal: break
             case let .link(url):
-                ts.addAttributes([.foregroundColor: NSColor.linkColor, .underlineStyle: NSUnderlineStyle.single.rawValue,
+                ts.addAttributes([.foregroundColor: accentColor, .underlineStyle: NSUnderlineStyle.single.rawValue,
                                   .noteLink: url], range: r)
             }
         }
@@ -507,7 +512,7 @@ final class NoteTextView: NSTextView {
         switch kind {
         case let .checkbox(checked):
             let config = NSImage.SymbolConfiguration(pointSize: fontSize, weight: .regular)
-                .applying(.init(paletteColors: [checked ? .controlAccentColor : .secondaryLabelColor]))
+                .applying(.init(paletteColors: [checked ? accentColor : .secondaryLabelColor]))
             guard let img = NSImage(systemSymbolName: checked ? "checkmark.square.fill" : "square", accessibilityDescription: nil)?
                 .withSymbolConfiguration(config) else { return }
             let s = img.size

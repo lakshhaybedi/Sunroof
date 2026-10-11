@@ -17,6 +17,14 @@
 	<key>SUPublicEDKey</key><string>$(SPARKLE_PUBLIC_KEY)</string>
 	<key>SUEnableAutomaticChecks</key><true/>
 	<key>SUScheduledCheckInterval</key><integer>86400</integer>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key><string>com.lakshhaybedi.sunroof.panel</string>
+			<key>UTTypeDescription</key><string>Sunroof column</string>
+			<key>UTTypeConformsTo</key><array><string>public.data</string></array>
+		</dict>
+	</array>
 	<key>NSHumanReadableCopyright</key><string>© 2026 Lakshhay Bedi. MIT License.</string>
 </dict>
 </plist>

@@ -118,7 +118,11 @@ final class ShelfController {
         let name = "ShelfSplit-\(key)-\(ids.map(\.rawValue).joined(separator: "-"))"
         guard force || split?.splitView.autosaveName != name else { return }
         let chosen = ids.compactMap { id in descriptors.first { $0.id == id } }
-        let vc = PanelSplitController(descriptors: chosen, displayKey: key)
+        let settings = settings
+        let vc = PanelSplitController(descriptors: chosen, displayKey: key, settings: settings) { moved, target in
+            settings.panelOrder = movingPanel(moved, onto: target, in: visiblePanels(order: settings.panelOrder,
+                                                                                      enabled: Set(PanelID.allCases)))
+        }
         split = vc
         setColumns(vc.view)
     }
@@ -234,9 +238,11 @@ final class ShelfController {
         case .glass:
             let glass = NSGlassEffectView()
             glass.contentView = body
+            glass.tintColor = settings.shelfTint?.nsColor.withAlphaComponent(0.25)
             container = glass
         case .solid:
             let solid = SolidBackgroundView()
+            solid.tint = settings.shelfTint?.nsColor
             body.frame = solid.bounds
             body.autoresizingMask = [.width, .height]
             solid.addSubview(body)
@@ -252,6 +258,7 @@ final class ShelfController {
         withObservationTracking {
             _ = settings.theme
             _ = settings.material
+            _ = settings.shelfTint
             _ = settings.panelOrder
             _ = settings.enabledPanels
         } onChange: { [weak self] in
@@ -267,8 +274,12 @@ final class ShelfController {
 }
 
 private final class SolidBackgroundView: NSView {
+    var tint: NSColor? { didSet { needsDisplay = true } }
     override var wantsUpdateLayer: Bool { true }
-    override func updateLayer() { layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor }
+    override func updateLayer() {
+        let base = NSColor.windowBackgroundColor
+        layer?.backgroundColor = (tint.flatMap { base.blended(withFraction: 0.15, of: $0) } ?? base).cgColor
+    }
 }
 
 /// 8 pt strip at the bottom of the shelf; drag to change the shelf height.

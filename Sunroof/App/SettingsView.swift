@@ -26,7 +26,7 @@ final class SettingsWindowController {
             Page(title: "Notes", symbol: "note.text", height: 190, view: AnyView(NotesSettings())),
             Page(title: "Clipboard", symbol: "clipboard", height: 480, view: AnyView(ClipboardSettings().padding(20))),
             Page(title: "Panels", symbol: "rectangle.split.3x1", height: 260, view: AnyView(PanelsSettings().padding(20))),
-            Page(title: "Appearance", symbol: "paintpalette", height: 210, view: AnyView(AppearanceSettings())),
+            Page(title: "Appearance", symbol: "paintpalette", height: 300, view: AnyView(AppearanceSettings())),
             Page(title: "Advanced", symbol: "gearshape", height: 230, view: AnyView(AdvancedSettings())),
         ]
     }
@@ -158,13 +158,56 @@ private struct AppearanceSettings: View {
                 Text("Light").tag(Theme.light)
                 Text("Dark").tag(Theme.dark)
             }
-            Text("Select \"Auto\" to match the current macOS appearance.").font(.caption).foregroundStyle(.secondary)
             Picker("Material:", selection: $settings.material) {
                 Text("Liquid Glass").tag(ShelfMaterial.glass)
                 Text("Solid").tag(ShelfMaterial.solid)
             }
+            LabeledContent("Accent:") {
+                Swatches(choices: ColorChoice.allCases, selection: Binding(get: { settings.accent }, set: { settings.accent = $0 ?? .system }))
+            }
+            LabeledContent("Shelf tint:") {
+                Swatches(choices: [nil] + ColorChoice.allCases.filter { $0 != .system },
+                         selection: $settings.shelfTint)
+            }
+            Picker("Note font:", selection: $settings.noteFont) {
+                ForEach(NoteFont.allCases, id: \.self) { f in
+                    Text(f.title).font(Font(f.font(ofSize: 13))).tag(f)
+                }
+            }
+            Text("Select \"Auto\" to match the current macOS appearance. Accent colours links, checkboxes and buttons.")
+                .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
+    }
+}
+
+/// A row of colour dots; nil = "none" (a slashed circle).
+private struct Swatches: View {
+    let choices: [ColorChoice?]
+    @Binding var selection: ColorChoice?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(choices, id: \.self) { choice in
+                Button { selection = choice } label: {
+                    ZStack {
+                        if let choice {
+                            // "System" follows macOS's accent: a rainbow, so it isn't mistaken for one of the colours.
+                            Circle().fill(choice == .system
+                                ? AnyShapeStyle(AngularGradient(colors: [.red, .orange, .yellow, .green, .blue, .purple, .red], center: .center))
+                                : AnyShapeStyle(choice.color))
+                        } else {
+                            Circle().strokeBorder(.secondary, lineWidth: 1)
+                            Image(systemName: "line.diagonal").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        if selection == choice { Circle().strokeBorder(.primary, lineWidth: 2).padding(-3) }
+                    }
+                    .frame(width: 16, height: 16)
+                }
+                .buttonStyle(.plain)
+                .help(choice?.title ?? "None")
+            }
+        }
     }
 }
 

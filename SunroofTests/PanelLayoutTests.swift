@@ -19,4 +19,13 @@ import Testing
     @Test func duplicatesRemoved() {
         #expect(visiblePanels(order: [.files, .files, .notes], enabled: all) == [.files, .notes, .clipboard])
     }
+
+    // Feedback: drag a column's header onto another column to move it there.
+    @Test func movingPanels() {
+        let order: [PanelID] = [.clipboard, .files, .notes]
+        #expect(movingPanel(.clipboard, onto: .notes, in: order) == [.files, .notes, .clipboard])
+        #expect(movingPanel(.notes, onto: .clipboard, in: order) == [.notes, .clipboard, .files])
+        #expect(movingPanel(.files, onto: .notes, in: order) == [.clipboard, .notes, .files])
+        #expect(movingPanel(.files, onto: .files, in: order) == order)
+    }
 }

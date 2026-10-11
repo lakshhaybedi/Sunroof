@@ -39,6 +39,7 @@ struct NotesPanel: View {
             Divider()
             if showList { list } else if let current = controller.current {
                 NoteEditor(store: store, filename: current, fontSize: settings.noteFontSize,
+                           noteFont: settings.noteFont, accent: settings.accent.nsColor,
                            selection: settings.lastNoteSelection,
                            onTextView: { controller.textView = $0 },
                            onFocus: { settings.lastPanel = .notes })

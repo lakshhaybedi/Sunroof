@@ -21,6 +21,10 @@ final class AppSettings {
     var openOnLaunch: Bool { didSet { save(openOnLaunch, "openOnLaunch") } }
     var theme: Theme { didSet { save(theme.rawValue, "theme") } }
     var material: ShelfMaterial { didSet { save(material.rawValue, "material") } }
+    var accent: ColorChoice { didSet { save(accent.rawValue, "accent") } }
+    /// Colour wash over the shelf background; nil = none.
+    var shelfTint: ColorChoice? { didSet { save(shelfTint?.rawValue ?? "", "shelfTint") } }
+    var noteFont: NoteFont { didSet { save(noteFont.rawValue, "noteFont") } }
     var panelOrder: [PanelID] { didSet { save(panelOrder.map(\.rawValue), "panelOrder") } }
     var enabledPanels: Set<PanelID> { didSet { save(enabledPanels.map(\.rawValue), "enabledPanels") } }
     var clipboardPaused: Bool { didSet { save(clipboardPaused, "clipboardPaused") } }
@@ -75,6 +79,9 @@ final class AppSettings {
         openOnLaunch = v("openOnLaunch", false)
         theme = Theme(rawValue: v("theme", "")) ?? .auto
         material = ShelfMaterial(rawValue: v("material", "")) ?? .glass
+        accent = ColorChoice(rawValue: v("accent", "")) ?? .system
+        shelfTint = ColorChoice(rawValue: v("shelfTint", ""))
+        noteFont = NoteFont(rawValue: v("noteFont", "")) ?? .system
         panelOrder = ids("panelOrder") ?? PanelID.allCases
         enabledPanels = ids("enabledPanels").map(Set.init) ?? Set(PanelID.allCases)
         clipboardPaused = v("clipboardPaused", false)

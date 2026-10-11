@@ -95,4 +95,16 @@ import Testing
         AppSettings(defaults: defaults).stickies = ["A.md": "{{10, 20}, {280, 320}}"]
         #expect(AppSettings(defaults: defaults).stickies == ["A.md": "{{10, 20}, {280, 320}}"])
     }
+
+    @Test func appearanceDefaultsAndPersistence() {
+        let s = AppSettings(defaults: defaults)
+        #expect(s.accent == .system)
+        #expect(s.shelfTint == .none)
+        #expect(s.noteFont == .system)
+        s.accent = .orange; s.shelfTint = .purple; s.noteFont = .serif
+        let t = AppSettings(defaults: defaults)
+        #expect(t.accent == .orange)
+        #expect(t.shelfTint == .purple)
+        #expect(t.noteFont == .serif)
+    }
 }
