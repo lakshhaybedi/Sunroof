@@ -24,7 +24,9 @@ private final class DecorationBox: NSObject {
 /// Markdown editor: the text storage is always the exact markdown. Styling only sets attributes; checkboxes,
 /// bullets, rules, quote bars, concealed text and images are drawn over (cleared) characters.
 final class NoteTextView: NSTextView {
-    static let markerColor = NSColor.tertiaryLabelColor
+    /// Markers outside the span being edited are hidden: clear and (almost) zero-width.
+    static let markerColor = NSColor.clear
+    static let hiddenMarkerFont = NSFont.systemFont(ofSize: 0.1)
     static let activeMarkerColor = NSColor.secondaryLabelColor
 
     var fontSize: CGFloat = 14 { didSet { if oldValue != fontSize { restyleAll() } } }
@@ -385,7 +387,7 @@ final class NoteTextView: NSTextView {
                 if markerActive(span.range) {
                     ts.addAttribute(.foregroundColor, value: Self.activeMarkerColor, range: r)
                 } else {
-                    ts.addAttributes([.foregroundColor: Self.markerColor, .font: NSFont.systemFont(ofSize: fontSize * 0.6)], range: r)
+                    ts.addAttributes([.foregroundColor: Self.markerColor, .font: Self.hiddenMarkerFont], range: r)
                 }
             case .bold: addTrait(.boldFontMask, r, ts)
             case .italic: addTrait(.italicFontMask, r, ts)

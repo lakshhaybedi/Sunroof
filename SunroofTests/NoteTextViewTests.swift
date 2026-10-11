@@ -98,4 +98,12 @@ import Testing
         #expect(color(tv, at: 10) == NoteTextView.activeMarkerColor)
         #expect(color(tv, at: 0) == NoteTextView.markerColor)
     }
+
+    // Feedback: faded "<u>" was still visible. Inactive markers are hidden: no colour and (almost) no width.
+    @Test func inactiveMarkersTakeNoSpace() {
+        let tv = view("2. <u>That</u>\nx", caret: 16)
+        let font = tv.textStorage?.attribute(.font, at: 3, effectiveRange: nil) as? NSFont
+        #expect(color(tv, at: 3) == .clear)
+        #expect((font?.pointSize ?? 99) < 1)
+    }
 }
