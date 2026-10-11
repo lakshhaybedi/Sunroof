@@ -19,6 +19,8 @@ final class ShelfController {
     var onVisibilityChange: ((Bool) -> Void)?
     /// Called when hiding starts (e.g. purge caches).
     var onHide: [() -> Void] = []
+    /// Called after the panel is shown and key.
+    var onShow: [() -> Void] = []
     /// Frontmost app when the shelf opened — the paste target.
     private(set) var previousApp: NSRunningApplication?
     var isVisible: Bool { panel.isVisible && hideGeneration == 0 }
@@ -83,6 +85,7 @@ final class ShelfController {
         installMonitors()
         if let focus { split?.focus(focus) }
         onVisibilityChange?(true)
+        onShow.forEach { $0() }
     }
 
     private func rebuildColumnsIfNeeded(force: Bool = false) {

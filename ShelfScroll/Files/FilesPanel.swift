@@ -211,7 +211,7 @@ struct FilesPanel: View {
     }
 
     private func trash(_ items: [DrawerItem]) {
-        try? model.trash(items.map(\.url))
+        do { try model.trash(items.map(\.url)) } catch { Toast.show(error.localizedDescription) }
         selection.subtract(items.map(\.url))
     }
 
@@ -229,7 +229,7 @@ struct FilesPanel: View {
             }
             Button("Quick Look") { QuickLook.show(items.map(\.url)) }
             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting(items.map(\.url)) }
-            if items.count == 1, let item = items.first {
+            if items.count == 1, let item = items.first, !settings.filesAsList { // List view has no inline editor
                 Button("Rename") { selection = [item.url]; renaming = item.url }
             }
             Button("Copy") {
@@ -268,7 +268,7 @@ struct FilesPanel: View {
             selection = [items[next].url]
             return .handled
         case .return:
-            if selectedItems.count == 1 { renaming = selectedItems[0].url }
+            if selectedItems.count == 1, !settings.filesAsList { renaming = selectedItems[0].url }
             return .handled
         case .space:
             QuickLook.show(selectedItems.map(\.url))
@@ -311,16 +311,25 @@ struct FilesDropDelegate: DropDelegate {
             if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in
                     guard let url else { return }
-                    Task { @MainActor in _ = try? model.drop([url], operation: op) }
+                    let file = (url as NSURL).filePathURL ?? url // Finder may hand over file:///.file/id= references
+                    Task { @MainActor in
+                        do { _ = try model.drop([file], operation: op) } catch { Toast.show(error.localizedDescription) }
+                    }
                 }
             } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                let name = provider.suggestedName ?? "Image"
+                let suggested = provider.suggestedName ?? "Image"
                 _ = provider.loadFileRepresentation(for: .image) { temp, _, _ in
+                    // The temp file vanishes when this returns: stage it now, pick the final name on the main actor
+                    // so simultaneous drops can't race for the same name.
                     guard let temp else { return }
+                    let staged = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                    guard (try? FileManager.default.copyItem(at: temp, to: staged)) != nil else { return }
                     let ext = temp.pathExtension.isEmpty ? "png" : temp.pathExtension
-                    let dest = uniqueDestination(for: "\(name).\(ext)", in: dir)
-                    try? FileManager.default.copyItem(at: temp, to: dest)
-                    Task { @MainActor in model.reload() }
+                    let name = (suggested as NSString).pathExtension.isEmpty ? "\(suggested).\(ext)" : suggested
+                    Task { @MainActor in
+                        try? FileManager.default.moveItem(at: staged, to: uniqueDestination(for: name, in: dir))
+                        model.reload()
+                    }
                 }
             } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in

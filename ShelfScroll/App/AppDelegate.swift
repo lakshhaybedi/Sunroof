@@ -78,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         screenshots = ScreenshotWatcher(settings: settings)
         screenshots.start()
         let (drawer, settings) = (drawer!, settings)
+        shelf.onShow.append { drawer.reload() } // picks up a custom folder that came back online
         shelf.descriptors = shelf.descriptors.map { d in
             guard d.id == .files else { return d }
             return PanelDescriptor(id: .files, title: "Files") { AnyView(FilesPanel(model: drawer, settings: settings)) }
@@ -91,6 +92,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if drawer.root.path != root.path {
                 drawer.isDefaultRoot = settings.isDefaultFilesFolder
                 drawer.root = root
+            } else if drawer.rootMissing {
+                drawer.reload() // re-choosing the same folder after it reappears
             }
             drawer.arrangeBy = settings.arrangeBy
             drawer.foldersOnTop = settings.foldersOnTop

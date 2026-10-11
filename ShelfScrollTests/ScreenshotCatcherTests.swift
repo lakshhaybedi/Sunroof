@@ -42,4 +42,13 @@ import Testing
         try file("Old.png", in: source, screenshot: true)
         #expect(ScreenshotCatcher.collect(from: source, into: drawer, since: .now.addingTimeInterval(60)).isEmpty)
     }
+
+    // Review I8: screenshots already saved into the drawer's Screenshots folder are left alone (no rename loop).
+    @Test func sourceIsDestinationIsNoOp() throws {
+        let shots = drawer.appendingPathComponent("Screenshots")
+        try FileManager.default.createDirectory(at: shots, withIntermediateDirectories: true)
+        try file("S.png", in: shots, screenshot: true)
+        #expect(ScreenshotCatcher.collect(from: shots, into: drawer, since: .distantPast).isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: shots.path) == ["S.png"])
+    }
 }

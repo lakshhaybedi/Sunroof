@@ -47,4 +47,21 @@ import Testing
         #expect(try perform(.move, a, into: dir) == a)
         #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["a.txt"])
     }
+
+    // Review C1: copying a folder into itself (or below itself) must be refused, not recurse.
+    @Test func copyFolderIntoItselfRefused() throws {
+        let folder = dir.appendingPathComponent("Root")
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("Sub"), withIntermediateDirectories: true)
+        #expect(throws: (any Error).self) { try perform(.copy, folder, into: folder) }
+        #expect(throws: (any Error).self) { try perform(.copy, folder, into: folder.appendingPathComponent("Sub")) }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["Sub"])
+    }
+
+    // Review I2: the same-folder no-op must not depend on trailing slashes.
+    @Test func sameFolderNoOpWithTrailingSlash() throws {
+        let a = touch("a.txt")
+        let slashed = URL(filePath: dir.path + "/", directoryHint: .isDirectory)
+        #expect(try perform(.move, a, into: slashed).path == a.path)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["a.txt"])
+    }
 }

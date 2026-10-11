@@ -19,6 +19,9 @@ enum ScreenshotCatcher {
     /// Moves screenshots created since `since` from `source` into `drawer/Screenshots`, with unique names.
     static func collect(from source: URL, into drawer: URL, since: Date) -> [URL] {
         let fm = FileManager.default
+        let dest = drawer.appendingPathComponent("Screenshots")
+        // Screenshots already saved straight into the drawer stay put (moving them would loop forever).
+        guard comparablePath(source) != comparablePath(dest) else { return [] }
         let urls = (try? fm.contentsOfDirectory(at: source, includingPropertiesForKeys: [.creationDateKey])) ?? []
         let shots = urls.filter { url in
             guard isScreenshot(url), let created = try? url.resourceValues(forKeys: [.creationDateKey]).creationDate
@@ -26,7 +29,6 @@ enum ScreenshotCatcher {
             return created >= since
         }
         guard !shots.isEmpty else { return [] }
-        let dest = drawer.appendingPathComponent("Screenshots")
         try? fm.createDirectory(at: dest, withIntermediateDirectories: true)
         return shots.sorted { $0.lastPathComponent < $1.lastPathComponent }.compactMap { url in
             let target = uniqueDestination(for: url.lastPathComponent, in: dest)
@@ -58,7 +60,10 @@ final class ScreenshotWatcher {
         let folder = ScreenshotCatcher.screenshotFolder()
         watcher = FolderWatcher(url: folder) { [weak self] in
             guard let self else { return }
-            _ = ScreenshotCatcher.collect(from: folder, into: self.settings.filesFolder, since: since)
+            let drawer = self.settings.filesFolder
+            // Don't recreate an offline custom folder (it would hide "Folder not found").
+            guard self.settings.isDefaultFilesFolder || FileManager.default.fileExists(atPath: drawer.path) else { return }
+            _ = ScreenshotCatcher.collect(from: folder, into: drawer, since: since)
         }
     }
 }

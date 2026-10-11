@@ -1,5 +1,9 @@
 import Foundation
 
+/// File URL with no trailing slash, so URLs for the same item always compare equal
+/// (`appendingPathComponent` adds a slash when the folder already exists).
+func canonical(_ url: URL) -> URL { URL(filePath: url.standardizedFileURL.path, directoryHint: .notDirectory) }
+
 enum ArrangeBy: String, CaseIterable { case name, kind, dateAdded, dateModified }
 
 struct DrawerItem: Identifiable, Hashable {
@@ -19,10 +23,14 @@ struct DrawerItem: Identifiable, Hashable {
     static func load(_ url: URL) -> DrawerItem? {
         guard let v = try? url.resourceValues(forKeys: keys) else { return nil }
         let dir = (v.isDirectory ?? false) && !(v.isPackage ?? false)
-        return DrawerItem(url: url, name: url.lastPathComponent, isDirectory: dir,
-                          kind: v.localizedTypeDescription ?? "", dateAdded: v.addedToDirectoryDate ?? .distantPast,
-                          dateModified: v.contentModificationDate ?? .distantPast, size: v.fileSize.map(Int64.init))
+        let now = Date.now
+        return DrawerItem(url: canonical(url), name: url.lastPathComponent, isDirectory: dir,
+                          kind: v.localizedTypeDescription ?? "", dateAdded: date(v.addedToDirectoryDate, now: now),
+                          dateModified: date(v.contentModificationDate, now: now), size: v.fileSize.map(Int64.init))
     }
+
+    /// Missing dates (exFAT, SMB, some cloud folders) count as "now" so cleanup never treats them as old.
+    static func date(_ d: Date?, now: Date) -> Date { d ?? now }
 }
 
 func sortItems(_ items: [DrawerItem], by arrange: ArrangeBy, foldersOnTop: Bool) -> [DrawerItem] {

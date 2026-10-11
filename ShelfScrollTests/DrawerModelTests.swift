@@ -81,14 +81,45 @@ import Testing
         #expect(m.items.isEmpty)
     }
 
-    @Test func searchIsRecursive() throws {
+    @Test func searchIsRecursive() async throws {
         let z = try mkdir("Z")
         touch("deep.txt", in: z)
         let m = model()
         m.query = "deep"
+        await m.searchSettled()
         #expect(m.items.map(\.name) == ["deep.txt"])
         m.query = ""
+        await m.searchSettled()
         #expect(m.items.map(\.name) == ["Z"])
+    }
+
+    // Review I3: URLs the model returns match the listed items exactly (no trailing-slash variants).
+    @Test func newFolderURLMatchesListing() throws {
+        let m = model()
+        let url = try m.newFolder()
+        #expect(m.items.map(\.url) == [url])
+        let renamed = try m.rename(m.items[0], to: "Projects")
+        #expect(m.items.map(\.url) == [renamed])
+    }
+
+    // Review I5: after the default folder is trashed and recreated, live updates still work.
+    @Test func watcherFollowsRecreatedRoot() async throws {
+        let m = model()
+        try FileManager.default.moveItem(at: root, to: tempDir().appendingPathComponent("Trashed"))
+        m.reload()
+        touch("after.txt")
+        for _ in 0..<40 where m.items.isEmpty { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(m.items.map(\.name) == ["after.txt"])
+    }
+
+    // Review I6: a custom folder that comes back is picked up on the next reload.
+    @Test func customRootRecovers() throws {
+        try FileManager.default.removeItem(at: root)
+        let m = model(isDefault: false)
+        #expect(m.rootMissing)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        m.reload()
+        #expect(!m.rootMissing)
     }
 
     @Test func defaultRootRecreated() throws {

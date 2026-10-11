@@ -17,6 +17,19 @@ import Testing
         #expect(Cleanup.itemsToClean(items, olderThanDays: 30, now: now).map(\.lastPathComponent) == ["old"])
     }
 
+    // Review I9: a folder whose contents are still being edited is not old.
+    @Test func folderWithRecentContentsKept() {
+        let folder = DrawerItem(url: URL(fileURLWithPath: "/d/Project"), name: "Project", isDirectory: true, kind: "",
+                                dateAdded: now.addingTimeInterval(-40 * 86_400), dateModified: now.addingTimeInterval(-40 * 86_400), size: nil)
+        let urls = Cleanup.itemsToClean([folder], olderThanDays: 30, now: now) { _ in now.addingTimeInterval(-86_400) }
+        #expect(urls.isEmpty)
+    }
+
+    // Review I9: missing dates (exFAT, SMB, some cloud folders) count as "now", never as ancient.
+    @Test func missingDatesCountAsNow() {
+        #expect(DrawerItem.date(nil, now: now) == now)
+    }
+
     @Test func offCleansNothing() {
         #expect(Cleanup.itemsToClean([item("old", addedDaysAgo: 400, modifiedDaysAgo: 400)], olderThanDays: 0, now: now).isEmpty)
     }
