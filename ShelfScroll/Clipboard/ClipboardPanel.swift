@@ -202,7 +202,8 @@ struct ClipboardPanel: View {
             let links = (clip.fileURLs ?? []).map { "[\($0.lastPathComponent)](\($0.absoluteString))" }
             name = notes.append(links.joined(separator: "\n"), to: filename)
         default:
-            name = notes.append(clip.text ?? "", to: filename)
+            guard let text = clip.text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+            name = notes.append(text, to: filename)
         }
         Toast.show("Added to \((name as NSString).deletingPathExtension)")
     }

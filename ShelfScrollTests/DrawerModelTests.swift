@@ -147,4 +147,15 @@ import Testing
         #expect(m.current.path == other.path)
         #expect(m.items.map(\.name) == ["o.txt"])
     }
+
+    // Review I4: a cancelled Files search stops walking the tree.
+    @Test func searchStopsWhenCancelled() async throws {
+        for i in 0..<50 { touch("f\(i).txt") }
+        let r = root
+        let t = Task.detached { () -> [URL] in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return DrawerModel.search("f", in: r)
+        }
+        #expect(await t.value.isEmpty)
+    }
 }

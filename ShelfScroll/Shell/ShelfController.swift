@@ -178,7 +178,7 @@ final class ShelfController {
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
             guard let self, e.window === self.panel else { return e } // keys in Settings/onboarding aren't ours
             let flags = e.modifierFlags.intersection([.command, .shift, .option, .control])
-            if e.keyCode == 3, flags == [.command, .shift] { // ⌘⇧F
+            if flags == [.command, .shift], e.charactersIgnoringModifiers?.lowercased() == "f" { // ⌘⇧F (any layout)
                 MainActor.assumeIsolated { self.onGlobalSearch?() }
                 return nil
             }

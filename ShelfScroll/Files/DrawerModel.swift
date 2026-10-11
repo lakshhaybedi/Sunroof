@@ -148,7 +148,9 @@ final class DrawerModel {
         guard let e = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.nameKey],
                                                      options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { return [] }
         var hits: [URL] = []
+        guard !Task.isCancelled else { return [] }
         for case let url as URL in e where url.lastPathComponent.localizedStandardContains(q) {
+            if Task.isCancelled { return [] } // a newer query superseded this walk
             hits.append(url)
             if hits.count >= Self.maxSearchResults { break }
         }

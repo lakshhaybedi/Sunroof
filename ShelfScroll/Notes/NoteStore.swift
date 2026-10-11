@@ -6,8 +6,10 @@ struct Note: Identifiable, Equatable {
     var filename: String
     var text: String
     var modified: Date
-    /// Bumped only when the text is replaced from disk (sync) — the editor reloads on change, never on typing.
+    /// Bumped on every change. Editors reload when it changes and `lastWriter` isn't them.
     var revision = 0
+    /// The editor that made the last change (nil = disk / Send to Note).
+    var lastWriter: UUID?
     var title: String { NoteStore.title(of: text) }
     var preview: String { NoteStore.preview(of: text) }
 }
@@ -57,13 +59,15 @@ final class NoteStore {
     }
 
     /// Called on every keystroke (no text comparison — that's O(n) for huge notes).
-    func update(_ filename: String, text: String) {
+    func update(_ filename: String, text: String, from writer: UUID? = nil) {
         if let i = notes.firstIndex(where: { $0.filename == filename }) {
             notes[i].text = text
             notes[i].modified = .now
+            notes[i].revision += 1
+            notes[i].lastWriter = writer
         } else {
             // The file vanished under the editor (renamed/deleted elsewhere): keep the text; the save recreates it.
-            notes.append(Note(filename: filename, text: text, modified: .now))
+            notes.append(Note(filename: filename, text: text, modified: .now, revision: 1, lastWriter: writer))
             sort()
         }
         dirty.insert(filename)
@@ -207,6 +211,7 @@ final class NoteStore {
                     notes[i].text = text
                     notes[i].modified = m ?? .now
                     notes[i].revision += 1
+                    notes[i].lastWriter = nil
                 }
             } else if let text = Self.read(fileURL) {
                 notes.append(Note(filename: name, text: text, modified: m ?? .now))
@@ -319,7 +324,8 @@ extension NoteStore: NoteAppending {
         }
         notes[i].text = Self.appending(text, to: notes[i].text)
         notes[i].modified = .now
-        notes[i].revision += 1 // an open editor reloads the combined text
+        notes[i].revision += 1 // open editors reload the combined text
+        notes[i].lastWriter = nil
         markDirty(filename)
         return filename
     }

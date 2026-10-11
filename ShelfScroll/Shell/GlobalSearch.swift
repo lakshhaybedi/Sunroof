@@ -61,7 +61,8 @@ final class GlobalSearch {
             guard !Task.isCancelled, let self else { return }
             let clipHits = self.clips(q).prefix(Self.perSection).map(SearchHit.clip)
             let noteHits = self.notes(q).prefix(Self.perSection).map { SearchHit.note(filename: $0.filename, title: $0.title, preview: $0.preview) }
-            let fileURLs = await Task.detached(priority: .userInitiated) { files(q) }.value
+            let walk = Task.detached(priority: .userInitiated) { files(q) }
+            let fileURLs = await withTaskCancellationHandler { await walk.value } onCancel: { walk.cancel() }
             // A newer query may have started while Files was searching: drop stale results.
             guard !Task.isCancelled, self.query.trimmingCharacters(in: .whitespaces) == q else { return }
             let fileHits = fileURLs.prefix(Self.perSection).map(SearchHit.file)

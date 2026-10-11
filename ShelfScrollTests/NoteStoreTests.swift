@@ -222,17 +222,20 @@ import Testing
         #expect(NoteStore.filename(forTitle: String(repeating: "🙂", count: 100)).utf8.count <= 255)
     }
 
-    // Review I8: the editor reloads only on external changes — tracked by a revision, not text comparison.
-    @Test func revisionBumpsOnlyOnExternalChange() throws {
+    // Editors reload by revision + writer, never by comparing whole texts (review I8, cross-panel C1).
+    @Test func revisionAndWriterTracked() throws {
         try write("A.md", "A\nold")
         let s = store()
         let r0 = s.note("A.md")!.revision
-        s.update("A.md", text: "A\ntyped")
-        #expect(s.note("A.md")!.revision == r0)
+        let editor = UUID()
+        s.update("A.md", text: "A\ntyped", from: editor)
+        #expect(s.note("A.md")!.revision == r0 + 1)
+        #expect(s.note("A.md")!.lastWriter == editor)
         s.saveAll()
         try write("A.md", "A\nexternal")
         s.syncFromDisk()
-        #expect(s.note("A.md")!.revision == r0 + 1)
+        #expect(s.note("A.md")!.revision == r0 + 2)
+        #expect(s.note("A.md")!.lastWriter == nil)
     }
 
     // Review I11: an iCloud-evicted note (".A.md.icloud" placeholder) isn't dropped.

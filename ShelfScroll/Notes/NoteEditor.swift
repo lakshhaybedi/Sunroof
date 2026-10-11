@@ -15,6 +15,16 @@ final class NotesController {
     init(store: NoteStore, settings: AppSettings) {
         self.store = store
         self.settings = settings
+        // Follow renames/deletes made elsewhere (a sticky, the list, sync).
+        store.onRename.append { [weak self] old, new in
+            guard let self, self.current == old else { return }
+            self.current = new
+            self.settings.lastNote = new
+        }
+        store.onDelete.append { [weak self] name in
+            guard let self, self.current == name else { return }
+            self.current = self.store.notes.first?.filename
+        }
     }
 
     /// Last note, else the newest, else a welcome note.
@@ -56,6 +66,78 @@ final class NotesController {
     }
 }
 
+/// Connects one text view to one note. Every keystroke goes to the store tagged with this editor's id;
+/// when anyone else changes the note (another editor, sync, Send to Note) the text view reloads, keeping the caret.
+@MainActor
+final class NoteEditorBinding {
+    let id = UUID()
+    let store: NoteStore
+    let textView: NoteTextView
+    private(set) var filename: String
+    private var seenRevision = -1
+    private var observation = 0
+
+    init(store: NoteStore, textView: NoteTextView, filename: String, selection: Int = 0) {
+        self.store = store
+        self.textView = textView
+        self.filename = filename
+        bind()
+        load(selection: selection)
+        observe()
+    }
+
+    /// Switch notes. A rename (same text under a new name) keeps the caret and undo instead of reloading.
+    func setFilename(_ new: String) {
+        guard new != filename else { return }
+        filename = new
+        bind()
+        if let note = store.note(new), note.text == textView.string { seenRevision = note.revision }
+        else { load(selection: 0) }
+        observe()
+    }
+
+    func storeDidChange() {
+        guard let note = store.note(filename), note.revision != seenRevision else { return }
+        seenRevision = note.revision
+        guard note.lastWriter != id else { return } // our own keystroke
+        let sel = textView.selectedRange()
+        textView.load(note.text)
+        textView.setSelectedRange(NSRange(location: min(sel.location, (note.text as NSString).length), length: 0))
+    }
+
+    private func bind() {
+        let store = store
+        textView.baseURL = store.folder.appendingPathComponent("/", isDirectory: true)
+        textView.onTextChange = { [weak self] text in
+            guard let self else { return }
+            store.update(self.filename, text: text, from: self.id)
+        }
+        textView.onImage = { [weak self] png in self.map { store.saveAttachment(png, for: $0.filename) } }
+    }
+
+    private func load(selection: Int) {
+        let note = store.note(filename)
+        seenRevision = note?.revision ?? 0
+        let text = note?.text ?? ""
+        textView.load(text)
+        textView.setSelectedRange(NSRange(location: min(selection, (text as NSString).length), length: 0))
+        textView.scrollRangeToVisible(textView.selectedRange())
+    }
+
+    /// Re-arms after each change; `observation` drops chains from before a filename switch.
+    private func observe() {
+        observation += 1
+        let token = observation
+        withObservationTracking { _ = store.note(filename)?.revision } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self, self.observation == token else { return }
+                self.storeDidChange()
+                self.observe()
+            }
+        }
+    }
+}
+
 struct NoteEditor: NSViewRepresentable {
     let store: NoteStore
     let filename: String
@@ -75,46 +157,26 @@ struct NoteEditor: NSViewRepresentable {
         scroll.autohidesScrollers = true
         tv.minSize = NSSize(width: 0, height: 0)
         tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        tv.onFocus = onFocus
         onTextView(tv)
+        context.coordinator.binding = NoteEditorBinding(store: store, textView: tv, filename: filename, selection: selection)
         context.coordinator.attach(tv)
-        load(tv, context: context, selection: selection)
         return scroll
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let tv = scroll.documentView as? NoteTextView else { return }
         onTextView(tv)
+        tv.onFocus = onFocus
         tv.fontSize = fontSize
-        if context.coordinator.filename != filename {
-            load(tv, context: context, selection: 0)
-        } else if let note = store.note(filename), note.revision != context.coordinator.revision {
-            context.coordinator.revision = note.revision // replaced from disk (sync) or appended — reload, keep caret
-            let sel = tv.selectedRange()
-            tv.load(note.text)
-            tv.setSelectedRange(NSRange(location: min(sel.location, (note.text as NSString).length), length: 0))
-        }
+        context.coordinator.binding?.setFilename(filename)
     }
 
     static func dismantleNSView(_ scroll: NSScrollView, coordinator: Coordinator) { coordinator.detach() }
 
-    private func load(_ tv: NoteTextView, context: Context, selection: Int) {
-        context.coordinator.filename = filename
-        context.coordinator.revision = store.note(filename)?.revision ?? 0
-        let (store, filename) = (store, filename)
-        tv.onFocus = onFocus
-        tv.baseURL = store.folder.appendingPathComponent("/", isDirectory: true)
-        tv.onTextChange = { text in store.update(filename, text: text) }
-        tv.onImage = { store.saveAttachment($0, for: filename) }
-        let text = store.note(filename)?.text ?? ""
-        tv.load(text)
-        tv.setSelectedRange(NSRange(location: min(selection, (text as NSString).length), length: 0))
-        tv.scrollRangeToVisible(tv.selectedRange())
-    }
-
-    /// Shows the floating formatting bar above a non-empty selection.
+    /// Owns the binding and shows the floating formatting bar above a non-empty selection.
     @MainActor final class Coordinator: NSObject {
-        var filename: String?
-        var revision = 0
+        var binding: NoteEditorBinding?
         private var bar: NSHostingView<FormatBar>?
         private var observer: Any?
 
@@ -131,6 +193,7 @@ struct NoteEditor: NSViewRepresentable {
         func detach() {
             if let observer { NotificationCenter.default.removeObserver(observer) }
             observer = nil
+            binding = nil
         }
 
         private func update(_ tv: NoteTextView) {

@@ -1,4 +1,5 @@
 import AppKit
+import Observation
 import SwiftUI
 
 /// Notes floating above other windows. Frames persist; closing a sticky never deletes its note.
@@ -7,6 +8,7 @@ final class StickyManager: NSObject, NSWindowDelegate {
     private let store: NoteStore
     private let settings: AppSettings
     private var panels: [String: NSPanel] = [:] // filename → panel
+    private var models: [ObjectIdentifier: StickyModel] = [:] // panel → which note it shows
     static let defaultSize = NSSize(width: 280, height: 320)
 
     init(store: NoteStore, settings: AppSettings) {
@@ -34,7 +36,10 @@ final class StickyManager: NSObject, NSWindowDelegate {
         panel.delegate = self
         panel.setFrame(frame, display: false)
         panels[filename] = panel
-        configure(panel, filename)
+        let model = StickyModel(filename: filename)
+        models[ObjectIdentifier(panel)] = model
+        panel.title = store.note(filename)?.title ?? filename
+        panel.contentView = NSHostingView(rootView: StickyContent(model: model, store: store, settings: settings))
         panel.orderFrontRegardless()
         remember(panel)
     }
@@ -46,18 +51,12 @@ final class StickyManager: NSObject, NSWindowDelegate {
         }
     }
 
-    private func configure(_ panel: NSPanel, _ filename: String) {
-        panel.title = store.note(filename)?.title ?? filename
-        panel.contentView = NSHostingView(rootView:
-            NoteEditor(store: store, filename: filename, fontSize: settings.noteFontSize)
-                .frame(minWidth: 180, minHeight: 120))
-    }
-
     private func rename(_ old: String, to new: String) {
         guard let panel = panels.removeValue(forKey: old) else { return }
         panels[new] = panel
         settings.stickies[new] = settings.stickies.removeValue(forKey: old)
-        configure(panel, new)
+        models[ObjectIdentifier(panel)]?.filename = new // the editor switches files without reloading
+        panel.title = store.note(new)?.title ?? new
     }
 
     private func close(_ filename: String) {
@@ -90,7 +89,25 @@ final class StickyManager: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let w = notification.object as? NSWindow, let name = name(of: w) else { return }
         panels[name] = nil
+        models[ObjectIdentifier(w)] = nil
         settings.stickies[name] = nil
         if store.note(name) != nil { _ = store.finishEditing(name) }
+    }
+}
+
+@MainActor @Observable
+final class StickyModel {
+    var filename: String
+    init(filename: String) { self.filename = filename }
+}
+
+private struct StickyContent: View {
+    let model: StickyModel
+    let store: NoteStore
+    let settings: AppSettings
+
+    var body: some View {
+        NoteEditor(store: store, filename: model.filename, fontSize: settings.noteFontSize)
+            .frame(minWidth: 180, minHeight: 120)
     }
 }
