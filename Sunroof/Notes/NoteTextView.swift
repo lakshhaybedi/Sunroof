@@ -534,6 +534,31 @@ final class NoteTextView: NSTextView {
 
     // MARK: - Mouse
 
+    /// Tooltip text for a link under the pointer.
+    func linkHint(forCharacterAt i: Int) -> String? {
+        guard let ts = textStorage, i >= 0, i < ts.length, let url = ts.attribute(.noteLink, at: i, effectiveRange: nil) as? URL
+        else { return nil }
+        if url.scheme == "mailto" { return "⌘-click to email \(url.absoluteString.dropFirst(7))" }
+        let host = url.host()?.replacingOccurrences(of: "www.", with: "") ?? url.absoluteString
+        return "⌘-click to open \(host) in your browser"
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.filter { $0.userInfo?["links"] != nil }.forEach(removeTrackingArea)
+        // .activeAlways: the shelf belongs to an app that usually isn't active.
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseMoved, .activeAlways, .inVisibleRect],
+                                       owner: self, userInfo: ["links": true]))
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        let p = convert(event.locationInWindow, from: nil)
+        let hint = characterIndex(at: p).flatMap { linkHint(forCharacterAt: $0) }
+        if toolTip != hint { toolTip = hint }
+        if hint != nil, event.modifierFlags.contains(.command) { NSCursor.pointingHand.set() }
+    }
+
     override func mouseDown(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
         if let (kind, range) = decoration(at: p) {

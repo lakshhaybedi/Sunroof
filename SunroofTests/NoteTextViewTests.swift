@@ -125,4 +125,11 @@ import Testing
         #expect(tv.string == "see docs now")
         #expect(!tv.isEnteringLink)
     }
+
+    // Feedback: hovering a link says how to open it.
+    @Test func linkHoverHint() {
+        let tv = view("see [docs](https://apple.com/mac) now\nx")
+        #expect(tv.linkHint(forCharacterAt: 6) == "⌘-click to open apple.com in your browser")
+        #expect(tv.linkHint(forCharacterAt: 1) == nil)
+    }
 }
