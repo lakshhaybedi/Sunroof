@@ -134,8 +134,11 @@ struct FilesPanel: View {
                         rename(item, to: $0)
                     }
                     .contentShape(Rectangle())
-                    .onTapGesture(count: 2) { open(item) }
-                    .onTapGesture { click(item) }
+                    // One tap gesture (a separate double-tap gesture delays every single click by the double-click
+                    // interval): select on the first click, open on the second via the event's click count.
+                    .onTapGesture {
+                        if NSApp.currentEvent?.clickCount ?? 1 >= 2 { open(item) } else { click(item) }
+                    }
                     .onDrag { NSItemProvider(contentsOf: item.url) ?? NSItemProvider() }
                     .contextMenu { menu(for: selection.contains(item.url) ? selectedItems : [item]) }
                 }

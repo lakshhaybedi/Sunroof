@@ -20,5 +20,8 @@ enum QuickLook {
         panel.dataSource = source
         panel.reloadData()
         panel.makeKeyAndOrderFront(nil)
+        // Above the shelf (which sits at .statusBar) — otherwise the preview opens behind it.
+        panel.level = NSWindow.Level(NSWindow.Level.statusBar.rawValue + 1)
+        panel.orderFrontRegardless()
     }
 }
