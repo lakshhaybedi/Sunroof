@@ -96,8 +96,9 @@ final class ShelfController {
         setColumns(vc.view)
     }
 
-    func hide() {
-        guard panel.isVisible, hideGeneration == 0 else { return }
+    /// `completion` runs once the panel is off screen and has given up keyboard focus.
+    func hide(completion: (@MainActor @Sendable () -> Void)? = nil) {
+        guard panel.isVisible, hideGeneration == 0 else { completion?(); return }
         removeMonitors()
         hideGeneration += 1
         let generation = hideGeneration
@@ -110,9 +111,10 @@ final class ShelfController {
             else { panel.animator().setFrame(frame.offsetBy(dx: 0, dy: frame.height), display: true) }
         }, completionHandler: { [weak self] in
             MainActor.assumeIsolated {
-                guard let self, self.hideGeneration == generation else { return }
+                guard let self, self.hideGeneration == generation else { completion?(); return }
                 self.panel.orderOut(nil)
                 self.hideGeneration = 0
+                completion?()
             }
         })
         onVisibilityChange?(false)

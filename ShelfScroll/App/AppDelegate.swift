@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests use the app as host; don't show windows or install monitors there.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        NSApp.mainMenu = Self.editMenu()
         shelf = ShelfController(settings: settings)
         setUpClipboard()
         edgeMonitor = EdgeTriggerMonitor(settings: settings) { [weak self] decision in
@@ -80,6 +81,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case let .open(i): if NSScreen.screens.indices.contains(i) { shelf.show(on: NSScreen.screens[i], focus: nil) }
         case let .openFiles(i): if NSScreen.screens.indices.contains(i) { shelf.show(on: NSScreen.screens[i], focus: .files) }
         }
+    }
+
+    /// Agent apps have no visible menu bar, but key equivalents (⌘C/⌘V/⌘X/⌘A/⌘Z) still route
+    /// through the main menu — without it, text fields can't copy or paste.
+    private static func editMenu() -> NSMenu {
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        let item = NSMenuItem()
+        item.submenu = edit
+        let main = NSMenu()
+        main.addItem(NSMenuItem()) // app menu slot
+        main.addItem(item)
+        return main
     }
 
     static func screenUnderMouse() -> NSScreen? {

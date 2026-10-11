@@ -172,4 +172,37 @@ import Testing
         s.useFavoritesFolder(other)
         #expect(s.favorites.map(\.text) == ["x"])
     }
+
+    // Review C1: history changes must not rewrite a (possibly synced) favorites.json.
+    @Test func historyChangeDoesNotRewriteFavorites() async throws {
+        let s = store()
+        s.toggleFavorite(clip("a"))
+        await s.saveNow()
+        let file = favoritesDir.appendingPathComponent("favorites.json")
+        try Data("sentinel".utf8).write(to: file)
+        s.ingest(clip("b"))
+        await s.saveNow()
+        #expect(try String(contentsOf: file, encoding: .utf8) == "sentinel")
+    }
+
+    // Review C1: an existing but unreadable favorites.json (evicted cloud file, permissions) is never overwritten.
+    @Test func unreadableFavoritesNeverOverwritten() async throws {
+        try FileManager.default.createDirectory(at: favoritesDir, withIntermediateDirectories: true)
+        let file = favoritesDir.appendingPathComponent("favorites.json")
+        try Data("[]".utf8).write(to: file)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path) }
+        let s = store()
+        s.toggleFavorite(clip("a"))
+        await s.saveNow()
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "[]")
+    }
+
+    // Review I1: concealed clips are memory-only, so they can't become favorites.
+    @Test func sensitiveClipCannotBeFavorited() {
+        let s = store()
+        s.toggleFavorite(clip("pw", sensitive: true))
+        #expect(s.favorites.isEmpty)
+    }
 }

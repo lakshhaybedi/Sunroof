@@ -20,7 +20,10 @@ enum ClipWriter {
         case .image:
             if let name = clip.imageFile, let png = try? Data(contentsOf: imagesDir.appendingPathComponent(name)) {
                 pb.setData(png, forType: .png)
-                if let tiff = NSBitmapImageRep(data: png)?.tiffRepresentation { pb.setData(tiff, forType: .tiff) }
+                // Uncompressed TIFF of a big PNG can be hundreds of MB; only add it for small images.
+                if png.count < 2_000_000, let tiff = NSBitmapImageRep(data: png)?.tiffRepresentation {
+                    pb.setData(tiff, forType: .tiff)
+                }
             }
         case .color:
             if !plainText, let color = NSColor(hex: text) { pb.writeObjects([color]) }
@@ -28,6 +31,11 @@ enum ClipWriter {
         }
         pb.addTypes([ClipReader.ownType], owner: nil)
         pb.setData(Data(), forType: ClipReader.ownType)
+        if clip.isSensitive { // keep other clipboard managers / Universal Clipboard from recording it
+            let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+            pb.addTypes([concealed], owner: nil)
+            pb.setData(Data(), forType: concealed)
+        }
     }
 }
 

@@ -56,4 +56,12 @@ import Testing
         ClipWriter.write(textClip("hello"), to: pb, imagesDir: dir)
         #expect(readBack() == nil)
     }
+
+    // Review I5: a concealed clip put back on the clipboard stays marked concealed.
+    @Test func sensitiveWriteMarkedConcealed() {
+        var c = textClip("pw")
+        c.isSensitive = true
+        ClipWriter.write(c, to: pb, imagesDir: dir)
+        #expect(pb.types?.contains(.init("org.nspasteboard.ConcealedType")) == true)
+    }
 }

@@ -14,6 +14,7 @@ struct ClipboardPanel: View {
     @State private var draft = ""
     @FocusState private var listFocused: Bool
     @FocusState private var editing: Bool
+    @FocusState private var searchFocused: Bool
 
     private var clips: [Clip] {
         ClipStore.filter(showFavorites ? store.favorites : store.history, query: query)
@@ -31,6 +32,7 @@ struct ClipboardPanel: View {
             if searching {
                 TextField("Search", text: $query)
                     .textFieldStyle(.roundedBorder)
+                    .focused($searchFocused)
                     .padding(.horizontal, 8).padding(.bottom, 6)
             }
             Divider()
@@ -38,6 +40,7 @@ struct ClipboardPanel: View {
             list
         }
         .onAppear {
+            listFocused = true // ↑/↓/⏎ work as soon as the shelf opens
             showFavorites = switch settings.clipboardOpensWith {
             case .lastView: settings.lastClipboardView == .favorites
             case .history: false
@@ -164,7 +167,9 @@ struct ClipboardPanel: View {
         Button("Paste") { paster.paste(clip) }
         Button("Paste as Plain Text") { paster.paste(clip, plainText: true) }
         Button("Copy") { copy(clip) }
-        Button(store.isFavorite(clip) ? "Unfavorite" : "Favorite") { store.toggleFavorite(clip) }
+        if !clip.isSensitive {
+            Button(store.isFavorite(clip) ? "Unfavorite" : "Favorite") { store.toggleFavorite(clip) }
+        }
         if !showFavorites {
             Divider()
             Button("Delete", role: .destructive) { store.delete(clip.id) }
@@ -194,6 +199,7 @@ struct ClipboardPanel: View {
     }
 
     private func handleKey(_ key: KeyPress, proxy: ScrollViewProxy) -> KeyPress.Result {
+        guard !editing, !searchFocused else { return .ignored } // text fields keep their own keys
         let all = (current.map { [$0] } ?? []) + clips.filter { $0.id != current?.id }
         let index = all.firstIndex { $0.id == selection }
         let selected = index.map { all[$0] }

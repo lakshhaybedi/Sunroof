@@ -99,7 +99,7 @@ import Testing
     }
 
     @Test func hugeTextIgnored() {
-        pb.setString(String(repeating: "a", count: 5_000_001), forType: .string)
+        pb.setString(String(repeating: "a", count: 1_000_001), forType: .string)
         #expect(read() == nil)
     }
 
@@ -112,5 +112,24 @@ import Testing
         let c = read()
         #expect(a?.contentHash == b?.contentHash)
         #expect(a?.contentHash != c?.contentHash)
+    }
+
+    // Review I2: oversized RTF is dropped; the clip is kept as plain text.
+    @Test func hugeRTFStoredAsPlainText() {
+        pb.declareTypes([.string, .rtf], owner: nil)
+        pb.setString("hi", forType: .string)
+        pb.setData(Data(count: 2_000_001), forType: .rtf)
+        let c = read()
+        #expect(c?.kind == .text)
+        #expect(c?.rtf == nil)
+    }
+
+    // Review I3: a huge TIFF is rejected before it is decoded and converted.
+    @Test func hugeTIFFIgnored() {
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 3000, pixelsHigh: 2000, bitsPerSample: 8,
+                                   samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                                   bytesPerRow: 0, bitsPerPixel: 0)!
+        pb.setData(rep.tiffRepresentation, forType: .tiff) // ~24 MB uncompressed
+        #expect(read() == nil)
     }
 }

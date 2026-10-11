@@ -7,11 +7,16 @@ import Observation
 final class ClipStore {
     private(set) var history: [Clip] = []
     private(set) var favorites: [Clip] = []
-    var limit: Int { didSet { trim(); scheduleSave() } }
+    var limit: Int { didSet { if limit != oldValue { trim(); scheduleSave(history: true) } } }
 
     @ObservationIgnored private let historyDir: URL
     @ObservationIgnored private(set) var favoritesDir: URL
     @ObservationIgnored private var pendingSave: Task<Void, Never>?
+    @ObservationIgnored private var historyDirty = false
+    @ObservationIgnored private var favoritesDirty = false
+    /// False when favorites.json exists but can't be read (evicted cloud file, permissions):
+    /// never overwrite what we couldn't load.
+    @ObservationIgnored private var favoritesWritable = true
 
     var historyImagesDir: URL { historyDir.appendingPathComponent("images") }
     var favoritesImagesDir: URL { favoritesDir.appendingPathComponent("images") }
@@ -23,8 +28,8 @@ final class ClipStore {
         self.favoritesDir = favoritesDir
         self.limit = limit
         try? FileManager.default.createDirectory(at: historyDir.appendingPathComponent("images"), withIntermediateDirectories: true)
-        history = Self.load(historyFile, imagesDir: historyImagesDir)
-        favorites = Self.load(favoritesFile, imagesDir: favoritesImagesDir)
+        history = Self.load(historyFile, imagesDir: historyImagesDir) ?? []
+        loadFavorites()
         trim()
     }
 
@@ -41,20 +46,20 @@ final class ClipStore {
             history.insert(clip, at: 0)
         }
         trim()
-        scheduleSave()
+        scheduleSave(history: true)
     }
 
     func delete(_ id: Clip.ID) {
         guard let i = history.firstIndex(where: { $0.id == id }) else { return }
         let c = history.remove(at: i)
         if let f = c.imageFile { removeImage(f, in: historyImagesDir) }
-        scheduleSave()
+        scheduleSave(history: true)
     }
 
     func clearHistory() {
         history.compactMap(\.imageFile).forEach { removeImage($0, in: historyImagesDir) }
         history.removeAll()
-        scheduleSave()
+        scheduleSave(history: true)
     }
 
     func isFavorite(_ clip: Clip) -> Bool {
@@ -62,6 +67,7 @@ final class ClipStore {
     }
 
     func toggleFavorite(_ clip: Clip) {
+        guard !clip.isSensitive else { return } // concealed clips are memory-only
         if let i = favorites.firstIndex(where: { $0.contentHash == clip.contentHash }) {
             let removed = favorites.remove(at: i)
             if let f = removed.imageFile { removeImage(f, in: favoritesImagesDir) }
@@ -77,7 +83,7 @@ final class ClipStore {
             }
             favorites.insert(copy, at: 0)
         }
-        scheduleSave()
+        scheduleSave(favorites: true)
     }
 
     func updateText(_ id: Clip.ID, to text: String) {
@@ -86,7 +92,7 @@ final class ClipStore {
         history[i].text = text
         history[i].rtf = nil
         history[i].contentHash = Clip.hash(kind: .text, payload: Data(text.utf8))
-        scheduleSave()
+        scheduleSave(history: true)
     }
 
     func imageURL(for clip: Clip) -> URL? {
@@ -109,16 +115,16 @@ final class ClipStore {
         guard url.standardizedFileURL != favoritesDir.standardizedFileURL else { return }
         let oldImages = favoritesImagesDir
         favoritesDir = url
-        let existing = Self.load(favoritesFile, imagesDir: favoritesImagesDir)
         if FileManager.default.fileExists(atPath: favoritesFile.path) {
-            favorites = existing
+            loadFavorites()
         } else {
+            favoritesWritable = true
             try? FileManager.default.createDirectory(at: favoritesImagesDir, withIntermediateDirectories: true)
             for name in favorites.compactMap(\.imageFile) {
                 try? FileManager.default.copyItem(at: oldImages.appendingPathComponent(name),
                                                   to: favoritesImagesDir.appendingPathComponent(name))
             }
-            scheduleSave()
+            scheduleSave(favorites: true)
         }
     }
 
@@ -127,44 +133,59 @@ final class ClipStore {
     /// Synchronous flush for app termination.
     func saveSync() {
         pendingSave?.cancel()
-        let encoder = JSONEncoder()
-        for (url, value) in [(historyFile, history.filter { !$0.isSensitive }), (favoritesFile, favorites)] {
-            guard let data = try? encoder.encode(value) else { continue }
-            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? data.write(to: url, options: .atomic)
-        }
+        Self.write(snapshot())
     }
 
     func saveNow() async {
         pendingSave?.cancel()
         pendingSave = nil
-        await write()
+        let jobs = snapshot()
+        await Task.detached(priority: .utility) { Self.write(jobs) }.value
     }
 
-    private func scheduleSave() {
+    private func scheduleSave(history h: Bool = false, favorites f: Bool = false) {
+        historyDirty = historyDirty || h
+        favoritesDirty = favoritesDirty || f
         pendingSave?.cancel()
         pendingSave = Task { [weak self] in
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            await self?.write()
+            await self?.saveNow()
         }
     }
 
-    private func write() async {
-        let encoder = JSONEncoder()
-        guard let h = try? encoder.encode(history.filter { !$0.isSensitive }),
-              let f = try? encoder.encode(favorites) else { return }
-        let jobs = [(historyFile, h), (favoritesFile, f)]
-        await Task.detached(priority: .utility) {
-            for (url, data) in jobs {
-                try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try? data.write(to: url, options: .atomic)
-            }
-        }.value
+    private struct Job: Sendable { let url: URL; let clips: [Clip] }
+
+    /// What needs writing now; clears the dirty flags.
+    private func snapshot() -> [Job] {
+        var jobs: [Job] = []
+        if historyDirty { jobs.append(Job(url: historyFile, clips: history.filter { !$0.isSensitive })) }
+        if favoritesDirty && favoritesWritable { jobs.append(Job(url: favoritesFile, clips: favorites)) }
+        historyDirty = false
+        favoritesDirty = false
+        return jobs
     }
 
-    private static func load(_ file: URL, imagesDir: URL) -> [Clip] {
-        guard let data = try? Data(contentsOf: file) else { return [] }
+    private nonisolated static func write(_ jobs: [Job]) {
+        let encoder = JSONEncoder()
+        for job in jobs {
+            guard let data = try? encoder.encode(job.clips) else { continue }
+            try? FileManager.default.createDirectory(at: job.url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: job.url, options: .atomic)
+        }
+    }
+
+    private func loadFavorites() {
+        let exists = FileManager.default.fileExists(atPath: favoritesFile.path)
+        let loaded = Self.load(favoritesFile, imagesDir: favoritesImagesDir)
+        favorites = loaded ?? []
+        favoritesWritable = !exists || loaded != nil
+    }
+
+    /// nil when the file exists but can't be read; [] when missing or corrupt (corrupt file moved aside).
+    private static func load(_ file: URL, imagesDir: URL) -> [Clip]? {
+        guard FileManager.default.fileExists(atPath: file.path) else { return [] }
+        guard let data = try? Data(contentsOf: file) else { return nil }
         guard let clips = try? JSONDecoder().decode([Clip].self, from: data) else {
             let bad = file.appendingPathExtension("corrupt")
             try? FileManager.default.removeItem(at: bad)

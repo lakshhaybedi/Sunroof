@@ -68,4 +68,4 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 | Threads | ≤ 7 | 3 |
 | Binary | Universal | x86_64 + arm64, 2.0 MB |
 
-After Clipboard (45 text + 5 × 3000×2000 image clips): closed 20 MB, 0.0 % CPU, 0 wake-ups, 4 threads; open 31 MB.
+After Clipboard (45 text + 5 × 3000×2000 image clips): closed 20 MB, 0.0 % CPU, 4 threads; open 31 MB. Idle wake-ups (Activity Monitor) 0 — the 0.5 s clipboard timer still fires (~8 context switches/s) but is coalesced.

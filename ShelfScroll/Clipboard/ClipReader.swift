@@ -3,7 +3,9 @@ import AppKit
 /// Turns the current pasteboard contents into a `Clip`, or nil when it shouldn't be recorded.
 enum ClipReader {
     static let ownType = NSPasteboard.PasteboardType("com.lakshhaybedi.ShelfScroll.own")
-    static let maxTextBytes = 5_000_000
+    // Caps keep 50 clips inside the §8 memory budget.
+    static let maxTextBytes = 1_000_000
+    static let maxRTFBytes = 2_000_000   // larger RTF: keep the clip as plain text
     static let maxImageBytes = 20_000_000
 
     // nspasteboard.org markers used by password managers and utilities.
@@ -44,7 +46,7 @@ enum ClipReader {
             guard string.utf8.count <= maxTextBytes,
                   !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             if isURL(string) { return clip(.url, payload: Data(string.utf8), text: string) }
-            if let rtf = pb.data(forType: .rtf) {
+            if let rtf = pb.data(forType: .rtf), rtf.count <= maxRTFBytes {
                 var c = clip(.richText, payload: Data(string.utf8), text: string)
                 c.rtf = rtf
                 return c
@@ -70,7 +72,9 @@ enum ClipReader {
 
     private static func pngData(_ pb: NSPasteboard) -> Data? {
         if let png = pb.data(forType: .png) { return png }
-        guard let tiff = pb.data(forType: .tiff), let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        // Reject before decoding: converting a huge TIFF is slow and memory-hungry.
+        guard let tiff = pb.data(forType: .tiff), tiff.count <= maxImageBytes,
+              let rep = NSBitmapImageRep(data: tiff) else { return nil }
         return rep.representation(using: .png, properties: [:])
     }
 }

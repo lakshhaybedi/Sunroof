@@ -1,15 +1,15 @@
 import CryptoKit
 import Foundation
 
-enum ClipKind: String, Codable { case text, richText, url, image, files, color }
+enum ClipKind: String, Codable, Sendable { case text, richText, url, image, files, color }
 enum SensitiveMode: String, Codable, CaseIterable { case conceal, ignore }
 
-struct ClipSource: Equatable, Codable {
+struct ClipSource: Equatable, Codable, Sendable {
     var bundleID: String?
     var name: String?
 }
 
-struct Clip: Identifiable, Equatable, Codable {
+struct Clip: Identifiable, Equatable, Codable, Sendable {
     var id = UUID()
     var kind: ClipKind
     var date: Date

@@ -43,7 +43,7 @@ struct ClipRow: View {
                     .background(Circle().fill(Color.primary.opacity(0.12)))
             }
             .buttonStyle(.plain).help("Remove from Favorites")
-        } else if hovering || isSelected {
+        } else if (hovering || isSelected) && !clip.isSensitive { // concealed clips can't be starred
             Button(action: onToggleFavorite) {
                 Image(systemName: store.isFavorite(clip) ? "star.fill" : "star").font(.title3)
             }
