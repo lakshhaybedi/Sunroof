@@ -35,6 +35,18 @@ final class AppSettings {
     }
     var favoritesFolder: URL { didSet { save(favoritesFolder.path, "favoritesFolder") } }
 
+    // Files
+    var filesFolder: URL { didSet { save(filesFolder.path, "filesFolder") } }
+    var arrangeBy: ArrangeBy { didSet { save(arrangeBy.rawValue, "arrangeBy") } }
+    var foldersOnTop: Bool { didSet { save(foldersOnTop, "foldersOnTop") } }
+    var filesAsList: Bool { didSet { save(filesAsList, "filesAsList") } }
+    var itemSizeIndex: Int { didSet { save(itemSizeIndex, "itemSizeIndex") } }
+    var cleanupDays: Int { didSet { save(cleanupDays, "cleanupDays") } }
+    var catchScreenshots: Bool { didSet { save(catchScreenshots, "catchScreenshots") } }
+    static let itemSizes: [CGFloat] = [48, 64, 96, 128]
+    static var defaultFilesFolder: URL { documents.appendingPathComponent("ShelfScroll Files") }
+    var isDefaultFilesFolder: Bool { filesFolder.standardizedFileURL.path == Self.defaultFilesFolder.standardizedFileURL.path }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         func v<T>(_ key: String, _ fallback: T) -> T { defaults.object(forKey: "settings." + key) as? T ?? fallback }
@@ -62,6 +74,13 @@ final class AppSettings {
             .flatMap { try? JSONDecoder().decode([String: SensitiveMode].self, from: $0) } ?? [:]
         favoritesFolder = (defaults.string(forKey: "settings.favoritesFolder")).map { URL(fileURLWithPath: $0) }
             ?? Self.documents.appendingPathComponent("ShelfScroll Favorites")
+        filesFolder = (defaults.string(forKey: "settings.filesFolder")).map { URL(fileURLWithPath: $0) } ?? Self.defaultFilesFolder
+        arrangeBy = ArrangeBy(rawValue: v("arrangeBy", "")) ?? .kind
+        foldersOnTop = v("foldersOnTop", true)
+        filesAsList = v("filesAsList", false)
+        itemSizeIndex = v("itemSizeIndex", 1)
+        cleanupDays = v("cleanupDays", 0)
+        catchScreenshots = v("catchScreenshots", false)
     }
 
     static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }

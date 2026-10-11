@@ -40,10 +40,11 @@ struct OnboardingView: View {
 
     // MARK: - Shell pages (plans 2–4 insert theirs before "accessibility")
 
-    static func shellPages(state: OnboardingState) -> [OnboardingPage] {
+    static func shellPages(state: OnboardingState, settings: AppSettings) -> [OnboardingPage] {
         [
             .init(id: "welcome", view: AnyView(WelcomePage())),
             .init(id: "gesture", view: AnyView(GesturePage(state: state))),
+            .init(id: "folders", view: AnyView(FoldersPage().environment(settings))),
             .init(id: "accessibility", view: AnyView(AccessibilityPage(state: state))),
         ]
     }
@@ -72,6 +73,25 @@ private struct GesturePage: View {
             Text(state.shelfOpened ? "Nice!" : "Try it")
                 .font(.headline)
                 .foregroundStyle(state.shelfOpened ? .green : .secondary)
+        }
+    }
+}
+
+/// Where Files (and, from plan 4, Notes) live.
+private struct FoldersPage: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        VStack(spacing: 16) {
+            Image(systemName: "folder").font(.system(size: 48)).foregroundStyle(Color.accentColor)
+            Text("Where should things live?").font(.title2.bold())
+            Form {
+                FolderPicker(title: "Files", url: $settings.filesFolder)
+            }
+            .formStyle(.grouped)
+            Text("Put these in iCloud Drive or Dropbox to sync between Macs. macOS will ask once for access to your Documents folder.")
+                .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
     }
 }

@@ -41,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !settings.hasCompletedOnboarding {
-            onboarding.show(pages: OnboardingView.shellPages(state: onboardingState)) { [weak self] in
+            onboarding.show(pages: OnboardingView.shellPages(state: onboardingState, settings: settings)) { [weak self] in
                 self?.settings.hasCompletedOnboarding = true
             }
         } else if settings.openOnLaunch, let screen = Self.screenUnderMouse() {

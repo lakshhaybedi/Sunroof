@@ -30,6 +30,7 @@ struct SettingsView: View {
         // Plans 2–4 insert Files, Notes and Clipboard tabs after General.
         TabView {
             GeneralSettings().tabItem { Label("General", systemImage: "switch.2") }
+            FilesSettings().tabItem { Label("Files", systemImage: "folder") }
             ClipboardSettings().tabItem { Label("Clipboard", systemImage: "clipboard") }
             PanelsSettings().tabItem { Label("Panels", systemImage: "rectangle.split.3x1") }
             AppearanceSettings().tabItem { Label("Appearance", systemImage: "paintpalette") }

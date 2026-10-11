@@ -61,4 +61,19 @@ import Testing
         AppSettings(defaults: defaults).favoritesFolder = URL(fileURLWithPath: "/tmp/Favs")
         #expect(AppSettings(defaults: defaults).favoritesFolder.path == "/tmp/Favs")
     }
+
+    @Test func filesDefaults() {
+        let s = AppSettings(defaults: defaults)
+        #expect(s.filesFolder.lastPathComponent == "ShelfScroll Files")
+        #expect(s.isDefaultFilesFolder)
+        #expect(s.arrangeBy == .kind)
+        #expect(s.foldersOnTop)
+        #expect(!s.filesAsList)
+        #expect(s.itemSizeIndex == 1)
+        #expect(s.cleanupDays == 0)
+        #expect(!s.catchScreenshots)
+        s.filesFolder = URL(fileURLWithPath: "/tmp/x")
+        #expect(!s.isDefaultFilesFolder)
+        #expect(AppSettings(defaults: defaults).filesFolder.path == "/tmp/x")
+    }
 }

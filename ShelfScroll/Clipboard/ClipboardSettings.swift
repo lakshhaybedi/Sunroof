@@ -50,13 +50,7 @@ struct ClipboardSettings: View {
                     Text("History").tag(ClipboardView.history)
                     Text("Favorites").tag(ClipboardView.favorites)
                 }
-                LabeledContent("Store favorites in") {
-                    HStack {
-                        Text(settings.favoritesFolder.path(percentEncoded: false))
-                            .lineLimit(1).truncationMode(.middle).foregroundStyle(.secondary)
-                        Button("Choose…") { chooseFolder() }
-                    }
-                }
+                FolderPicker(title: "Store favorites in", url: $settings.favoritesFolder)
             }
         }
     }
@@ -70,15 +64,6 @@ struct ClipboardSettings: View {
         for url in panel.urls {
             if let id = Bundle(url: url)?.bundleIdentifier { settings.sensitiveApps[id] = .conceal }
         }
-    }
-
-    private func chooseFolder() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
-        panel.directoryURL = settings.favoritesFolder.deletingLastPathComponent()
-        if panel.runModal() == .OK, let url = panel.url { settings.favoritesFolder = url }
     }
 }
 
