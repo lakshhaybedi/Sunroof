@@ -1,0 +1,55 @@
+name: ShelfScroll
+options:
+  bundleIdPrefix: com.lakshhaybedi
+  deploymentTarget:
+    macOS: "26.0"
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: 2.0.0
+targets:
+  ShelfScroll:
+    type: application
+    platform: macOS
+    sources: [ShelfScroll]
+    dependencies:
+      - package: KeyboardShortcuts
+    settings:
+      base:
+        INFOPLIST_FILE: ShelfScroll/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.lakshhaybedi.ShelfScroll
+        PRODUCT_NAME: ShelfScroll
+        SWIFT_VERSION: "6.0"
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: NO
+      configs:
+        Release:
+          ARCHS: "arm64 x86_64"
+          ONLY_ACTIVE_ARCH: NO
+  ShelfScrollTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [ShelfScrollTests]
+    dependencies:
+      - target: ShelfScroll
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ShelfScroll.app/Contents/MacOS/ShelfScroll"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  ShelfScroll:
+    build:
+      targets:
+        ShelfScroll: all
+        ShelfScrollTests: [test]
+    test:
+      targets: [ShelfScrollTests]
