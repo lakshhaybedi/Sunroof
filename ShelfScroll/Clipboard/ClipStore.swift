@@ -104,6 +104,24 @@ final class ClipStore {
         }
     }
 
+    /// Switch the favorites folder: load what's there, or carry current favorites over if it has none.
+    func useFavoritesFolder(_ url: URL) {
+        guard url.standardizedFileURL != favoritesDir.standardizedFileURL else { return }
+        let oldImages = favoritesImagesDir
+        favoritesDir = url
+        let existing = Self.load(favoritesFile, imagesDir: favoritesImagesDir)
+        if FileManager.default.fileExists(atPath: favoritesFile.path) {
+            favorites = existing
+        } else {
+            try? FileManager.default.createDirectory(at: favoritesImagesDir, withIntermediateDirectories: true)
+            for name in favorites.compactMap(\.imageFile) {
+                try? FileManager.default.copyItem(at: oldImages.appendingPathComponent(name),
+                                                  to: favoritesImagesDir.appendingPathComponent(name))
+            }
+            scheduleSave()
+        }
+    }
+
     // MARK: - Persistence
 
     func saveNow() async {

@@ -149,4 +149,27 @@ import Testing
         #expect(ClipStore.filter(clips, query: "A.TXT").first?.kind == .files)
         #expect(ClipStore.filter(clips, query: "").count == 3)
     }
+
+    @Test func switchingToEmptyFavoritesFolderMovesFavorites() async throws {
+        let s = store()
+        let img = try imageClip(in: s)
+        s.toggleFavorite(clip("a")); s.toggleFavorite(img)
+        let newDir = tempDir().appendingPathComponent("New")
+        s.useFavoritesFolder(newDir)
+        await s.saveNow()
+        let t = ClipStore(historyDir: historyDir, favoritesDir: newDir, limit: 3)
+        #expect(t.favorites.count == 2)
+        #expect(t.favorites.compactMap { t.imageURL(for: $0) }.allSatisfy { FileManager.default.fileExists(atPath: $0.path) })
+    }
+
+    @Test func switchingToExistingFavoritesFolderLoadsIt() async {
+        let other = tempDir().appendingPathComponent("Other")
+        let o = ClipStore(historyDir: tempDir(), favoritesDir: other, limit: 3)
+        o.toggleFavorite(clip("x"))
+        await o.saveNow()
+        let s = store()
+        s.toggleFavorite(clip("a"))
+        s.useFavoritesFolder(other)
+        #expect(s.favorites.map(\.text) == ["x"])
+    }
 }

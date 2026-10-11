@@ -4,6 +4,7 @@ import Observation
 enum ModifierKey: String, CaseIterable, Codable { case command, option, control, shift }
 enum Theme: String, CaseIterable { case auto, light, dark }
 enum ShelfMaterial: String, CaseIterable { case glass, solid }
+enum ClipboardView: String, CaseIterable { case lastView, history, favorites }
 
 /// All user settings, persisted to UserDefaults under "settings.<name>".
 @MainActor @Observable
@@ -25,6 +26,15 @@ final class AppSettings {
     var clipboardPaused: Bool { didSet { save(clipboardPaused, "clipboardPaused") } }
     var hasCompletedOnboarding: Bool { didSet { save(hasCompletedOnboarding, "hasCompletedOnboarding") } }
 
+    // Clipboard
+    var historyLimit: Int { didSet { save(historyLimit, "historyLimit") } }
+    var clipboardOpensWith: ClipboardView { didSet { save(clipboardOpensWith.rawValue, "clipboardOpensWith") } }
+    var lastClipboardView: ClipboardView { didSet { save(lastClipboardView.rawValue, "lastClipboardView") } }
+    var sensitiveApps: [String: SensitiveMode] {
+        didSet { save((try? JSONEncoder().encode(sensitiveApps)) ?? Data(), "sensitiveApps") }
+    }
+    var favoritesFolder: URL { didSet { save(favoritesFolder.path, "favoritesFolder") } }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         func v<T>(_ key: String, _ fallback: T) -> T { defaults.object(forKey: "settings." + key) as? T ?? fallback }
@@ -45,7 +55,16 @@ final class AppSettings {
         enabledPanels = ids("enabledPanels").map(Set.init) ?? Set(PanelID.allCases)
         clipboardPaused = v("clipboardPaused", false)
         hasCompletedOnboarding = v("hasCompletedOnboarding", false)
+        historyLimit = v("historyLimit", 50)
+        clipboardOpensWith = ClipboardView(rawValue: v("clipboardOpensWith", "")) ?? .lastView
+        lastClipboardView = ClipboardView(rawValue: v("lastClipboardView", "")) ?? .history
+        sensitiveApps = (defaults.data(forKey: "settings.sensitiveApps"))
+            .flatMap { try? JSONDecoder().decode([String: SensitiveMode].self, from: $0) } ?? [:]
+        favoritesFolder = (defaults.string(forKey: "settings.favoritesFolder")).map { URL(fileURLWithPath: $0) }
+            ?? Self.documents.appendingPathComponent("ShelfScroll Favorites")
     }
+
+    static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }
 
     func height(forDisplay key: String) -> CGFloat? {
         (defaults.object(forKey: "settings.height." + key) as? Double).map { CGFloat($0) }

@@ -42,4 +42,23 @@ import Testing
         #expect(s.height(forDisplay: "A") == 420)
         #expect(s.height(forDisplay: "B") == nil)
     }
+
+    @Test func clipboardDefaults() {
+        let s = AppSettings(defaults: defaults)
+        #expect(s.historyLimit == 50)
+        #expect(s.clipboardOpensWith == .lastView)
+        #expect(s.lastClipboardView == .history)
+        #expect(s.sensitiveApps.isEmpty)
+        #expect(s.favoritesFolder.lastPathComponent == "ShelfScroll Favorites")
+    }
+
+    @Test func sensitiveAppsPersist() {
+        AppSettings(defaults: defaults).sensitiveApps = ["com.1password.1password": .conceal]
+        #expect(AppSettings(defaults: defaults).sensitiveApps == ["com.1password.1password": .conceal])
+    }
+
+    @Test func favoritesFolderPersists() {
+        AppSettings(defaults: defaults).favoritesFolder = URL(fileURLWithPath: "/tmp/Favs")
+        #expect(AppSettings(defaults: defaults).favoritesFolder.path == "/tmp/Favs")
+    }
 }
