@@ -377,7 +377,14 @@ final class NoteTextView: NSTextView {
                               .backgroundColor: NSColor.quaternaryLabelColor.withAlphaComponent(0.15)], range: content)
         case .quote:
             ts.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: content)
+            let p = baseParagraph.mutableCopy() as! NSMutableParagraphStyle
+            p.firstLineHeadIndent = 14 // room for the bar (the "> " marker is hidden)
+            p.headIndent = 14
+            ts.addAttribute(.paragraphStyle, value: p, range: content)
             decorate(content, .quoteBar)
+        case .paragraph where content.location == 0:
+            // The first line is the note's title.
+            ts.addAttribute(.font, value: noteFont.font(ofSize: fontSize * 1.3, weight: .bold), range: content)
         case .rule where !caret:
             clear(content)
             decorate(content, .rule)
@@ -524,8 +531,9 @@ final class NoteTextView: NSTextView {
             NSColor.separatorColor.setFill()
             NSRect(x: textContainerOrigin.x, y: r.midY, width: bounds.width - textContainerOrigin.x * 2, height: 1).fill()
         case .quoteBar:
-            NSColor.tertiaryLabelColor.setFill()
-            NSBezierPath(roundedRect: NSRect(x: r.minX, y: r.minY, width: 3, height: r.height), xRadius: 1.5, yRadius: 1.5).fill()
+            accentColor.withAlphaComponent(0.6).setFill()
+            let x = textContainerOrigin.x + (textContainer?.lineFragmentPadding ?? 5) + 2
+            NSBezierPath(roundedRect: NSRect(x: x, y: r.minY, width: 3, height: r.height), xRadius: 1.5, yRadius: 1.5).fill()
         case .conceal:
             ("••••" as NSString).draw(at: NSPoint(x: r.minX, y: r.minY),
                                      withAttributes: [.font: baseFont, .foregroundColor: NSColor.secondaryLabelColor])

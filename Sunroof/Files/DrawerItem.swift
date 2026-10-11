@@ -46,3 +46,9 @@ func sortItems(_ items: [DrawerItem], by arrange: ArrangeBy, foldersOnTop: Bool)
     guard foldersOnTop else { return sorted }
     return sorted.filter(\.isDirectory) + sorted.filter { !$0.isDirectory }
 }
+
+/// ⇧-click: everything between the anchor (last plain/⌘ click) and the target, in display order.
+func rangeSelection(_ ids: [URL], anchor: URL?, target: URL) -> Set<URL> {
+    guard let anchor, let a = ids.firstIndex(of: anchor), let t = ids.firstIndex(of: target) else { return [target] }
+    return Set(ids[min(a, t)...max(a, t)])
+}

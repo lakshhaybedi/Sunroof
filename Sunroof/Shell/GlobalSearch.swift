@@ -29,6 +29,8 @@ final class GlobalSearch {
     var isVisible = false
     var query = "" { didSet { if query != oldValue { schedule() } } }
     private(set) var sections: [SearchSection] = []
+    /// True between a keystroke and its results (so "No results" doesn't flash).
+    private(set) var isSearching = false
     var selection = 0
 
     @ObservationIgnored private let clips: (String) -> [Clip]
@@ -54,7 +56,8 @@ final class GlobalSearch {
     private func schedule() {
         task?.cancel()
         let q = query.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { sections = []; selection = 0; task = nil; return }
+        guard !q.isEmpty else { sections = []; selection = 0; task = nil; isSearching = false; return }
+        isSearching = true
         let files = files
         task = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(150))
@@ -72,6 +75,7 @@ final class GlobalSearch {
                 SearchSection(id: .notes, title: "Notes", hits: Array(noteHits)),
             ].filter { !$0.hits.isEmpty }
             self.selection = 0
+            self.isSearching = false
         }
     }
 }

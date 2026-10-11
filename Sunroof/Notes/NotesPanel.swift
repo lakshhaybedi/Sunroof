@@ -96,7 +96,7 @@ struct NotesPanel: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(notes) { note in
-                    NoteRow(note: note, pinned: store.pinned.contains(note.filename), selected: selection == note.filename,
+                    NoteRow(note: note, pinned: store.pinned.contains(note.filename), selected: selection == note.filename || controller.current == note.filename,
                             onDelete: { controller.delete(note.filename) })
                         .contentShape(Rectangle())
                         .onTapGesture { controller.open(note.filename); DispatchQueue.main.async { controller.focus() } }

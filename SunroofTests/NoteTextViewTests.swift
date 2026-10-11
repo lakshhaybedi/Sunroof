@@ -132,4 +132,20 @@ import Testing
         #expect(tv.linkHint(forCharacterAt: 6) == "⌘-click to open apple.com in your browser")
         #expect(tv.linkHint(forCharacterAt: 1) == nil)
     }
+
+    // UX pass: the first line is the note's title — styled like one.
+    @Test func firstLineLooksLikeATitle() {
+        let tv = view("Trip to Berlin\nbody", caret: 18)
+        let title = tv.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        let body = tv.textStorage?.attribute(.font, at: 16, effectiveRange: nil) as? NSFont
+        #expect((title?.pointSize ?? 0) > (body?.pointSize ?? 0))
+        #expect(title?.fontDescriptor.symbolicTraits.contains(.bold) == true)
+    }
+
+    // UX pass: quote text is indented so the bar doesn't sit on the first letter.
+    @Test func quotesAreIndented() {
+        let tv = view("T\n> quote\nx", caret: 11)
+        let p = tv.textStorage?.attribute(.paragraphStyle, at: 4, effectiveRange: nil) as? NSParagraphStyle
+        #expect((p?.firstLineHeadIndent ?? 0) >= 12)
+    }
 }

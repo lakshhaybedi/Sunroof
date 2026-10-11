@@ -42,4 +42,11 @@ import Testing
         #expect(i.isDirectory == false)
         #expect(i.size == 5)
     }
+
+    // UX pass: ⇧-click extends from the last clicked item (the anchor), either direction.
+    @Test func shiftClickRange() {
+        let ids = ["a", "b", "c", "d", "e"].map { URL(fileURLWithPath: "/x/\($0)") }
+        #expect(rangeSelection(ids, anchor: ids[3], target: ids[1]) == Set(ids[1...3]))
+        #expect(rangeSelection(ids, anchor: nil, target: ids[2]) == [ids[2]])
+    }
 }

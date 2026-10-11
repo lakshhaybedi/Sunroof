@@ -7,6 +7,7 @@ struct FileCell: View {
     let size: CGFloat
     let selected: Bool
     @Binding var renaming: URL?
+    var subtitle: String? = nil
     let onRename: (String) -> Void
 
     @State private var thumbnail: CGImage?
@@ -44,6 +45,9 @@ struct FileCell: View {
                     .padding(.horizontal, 4)
                     .background(RoundedRectangle(cornerRadius: 4).fill(selected ? Color.accentColor : .clear))
                     .foregroundStyle(selected ? .white : .primary)
+                if let subtitle {
+                    Label(subtitle, systemImage: "folder").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
             }
         }
         .frame(width: size + 40)

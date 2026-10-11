@@ -118,24 +118,29 @@ private struct AccessibilityPage: View {
     }
 }
 
-/// Plain window for first-run onboarding.
+/// Plain window for first-run onboarding. Closing it (Done or the close button) counts as finished.
 @MainActor
-final class OnboardingWindowController {
+final class OnboardingWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private var onFinish: (() -> Void)?
 
     func show(pages: [OnboardingPage], onFinish: @escaping () -> Void) {
-        let view = OnboardingView(pages: pages) { [weak self] in
-            onFinish()
-            self?.window?.close()
-            self?.window = nil
-        }
+        self.onFinish = onFinish
+        let view = OnboardingView(pages: pages) { [weak self] in self?.window?.close() }
         let w = NSWindow(contentViewController: NSHostingController(rootView: view))
         w.title = "Welcome to Sunroof"
         w.styleMask = [.titled, .closable]
         w.isReleasedWhenClosed = false
+        w.delegate = self
         w.center()
         window = w
         NSApp.activate()
         w.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        onFinish?()
+        onFinish = nil
+        window = nil
     }
 }

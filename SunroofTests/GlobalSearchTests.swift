@@ -56,4 +56,13 @@ import Testing
         try await Task.sleep(for: .milliseconds(400)) // let the stale "a" search finish
         #expect(g.sections.first?.hits == [.file(URL(fileURLWithPath: "/ab"))])
     }
+
+    // UX pass: "No results" mustn't flash while a search is still running.
+    @Test func searchingFlag() async {
+        let g = GlobalSearch(clips: { _ in [] }, notes: { _ in [] }, files: { _ in [] })
+        g.query = "x"
+        #expect(g.isSearching)
+        await g.settled()
+        #expect(!g.isSearching)
+    }
 }

@@ -7,6 +7,7 @@ struct FilesPanel: View {
     let settings: AppSettings
 
     @State private var selection = Set<URL>()
+    @State private var anchor: URL?
     @State private var renaming: URL?
     @State private var searching = false
     @State private var dropTargeted = false
@@ -130,7 +131,8 @@ struct FilesPanel: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: size + 40), spacing: 8)], spacing: 12) {
                 ForEach(model.items) { item in
-                    FileCell(item: item, size: size, selected: selection.contains(item.url), renaming: $renaming) {
+                    FileCell(item: item, size: size, selected: selection.contains(item.url), renaming: $renaming,
+                             subtitle: model.query.isEmpty ? nil : folderLabel(item)) {
                         rename(item, to: $0)
                     }
                     .contentShape(Rectangle())
@@ -169,10 +171,11 @@ struct FilesPanel: View {
                 }
                 .onDrag { NSItemProvider(contentsOf: item.url) ?? NSItemProvider() }
             }
-            TableColumn("Date Modified") { item in
-                Text(item.dateModified, format: .dateTime.day().month().year().hour().minute()).foregroundStyle(.secondary)
+            .width(min: 160, ideal: 280)
+            TableColumn("Modified") { item in
+                Text(item.dateModified, format: .dateTime.day().month(.abbreviated).hour().minute()).foregroundStyle(.secondary)
             }
-            .width(min: 120, ideal: 150)
+            .width(min: 90, ideal: 110)
             TableColumn("Size") { item in
                 Text(item.isDirectory ? "--" : ByteCountFormatter.string(fromByteCount: item.size ?? 0, countStyle: .file))
                     .foregroundStyle(.secondary)
@@ -189,16 +192,23 @@ struct FilesPanel: View {
 
     // MARK: - Actions
 
+    /// Search results: which folder each one is in ("Files" for the top level).
+    private func folderLabel(_ item: DrawerItem) -> String {
+        let parent = item.url.deletingLastPathComponent()
+        return parent.path == model.root.path ? "Files" : parent.lastPathComponent
+    }
+
     private func click(_ item: DrawerItem) {
         focused = true
         let flags = NSEvent.modifierFlags
         if flags.contains(.command) {
             if selection.contains(item.url) { selection.remove(item.url) } else { selection.insert(item.url) }
-        } else if flags.contains(.shift), let anchor = model.items.firstIndex(where: { selection.contains($0.url) }),
-                  let target = model.items.firstIndex(of: item) {
-            selection = Set(model.items[min(anchor, target)...max(anchor, target)].map(\.url))
+            anchor = item.url
+        } else if flags.contains(.shift) {
+            selection = rangeSelection(model.items.map(\.url), anchor: anchor, target: item.url)
         } else {
             selection = [item.url]
+            anchor = item.url
         }
     }
 

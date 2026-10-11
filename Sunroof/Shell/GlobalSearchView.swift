@@ -39,7 +39,7 @@ struct GlobalSearchView: View {
                     .padding(6)
                 }
                 .frame(maxHeight: 360)
-            } else if !search.query.isEmpty {
+            } else if !search.query.isEmpty, !search.isSearching {
                 Text("No results").foregroundStyle(.secondary).padding(12)
             }
         }

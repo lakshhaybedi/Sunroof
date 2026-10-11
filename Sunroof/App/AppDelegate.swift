@@ -126,10 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shelf.onShow.append { [weak self] in
             // Keyboard goes to the column used last (Notes by default) unless the shelf was opened for a specific one.
             guard let self, self.shelf.requestedFocus == nil else { return }
-            let panel = self.settings.lastPanel
-            guard self.settings.enabledPanels.contains(panel) else { return }
-            if panel == .notes { notes.focus() }
-            else { NotificationCenter.default.post(name: .shelfFocusPanel, object: panel.rawValue) }
+            self.focusLastPanel()
         }
         shelf.descriptors = shelf.descriptors.map { d in
             guard d.id == .notes else { return d }
@@ -164,9 +161,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setSearchVisible(_ visible: Bool) {
+        let wasVisible = search.isVisible
         search.isVisible = visible
         if !visible { search.query = "" }
         shelfOverlay?.isHidden = !visible
+        if wasVisible, !visible, shelf.isVisible { focusLastPanel() }
+    }
+
+    private func focusLastPanel() {
+        let panel = settings.lastPanel
+        guard settings.enabledPanels.contains(panel) else { return }
+        if panel == .notes { notes.focus() }
+        else { NotificationCenter.default.post(name: .shelfFocusPanel, object: panel.rawValue) }
     }
 
     private var shelfOverlay: NSView? { shelf.overlayView }
