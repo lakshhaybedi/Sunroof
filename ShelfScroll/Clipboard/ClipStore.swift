@@ -124,6 +124,17 @@ final class ClipStore {
 
     // MARK: - Persistence
 
+    /// Synchronous flush for app termination.
+    func saveSync() {
+        pendingSave?.cancel()
+        let encoder = JSONEncoder()
+        for (url, value) in [(historyFile, history.filter { !$0.isSensitive }), (favoritesFile, favorites)] {
+            guard let data = try? encoder.encode(value) else { continue }
+            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
     func saveNow() async {
         pendingSave?.cancel()
         pendingSave = nil

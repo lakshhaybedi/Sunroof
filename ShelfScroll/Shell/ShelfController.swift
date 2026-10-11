@@ -147,8 +147,16 @@ final class ShelfController {
             MainActor.assumeIsolated { self?.hide() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard e.keyCode == 53 else { return e } // Esc
-            MainActor.assumeIsolated { self?.hide() }
+            guard e.keyCode == 53, let self else { return e } // Esc
+            let ours = e.window === self.panel // Esc in Settings/onboarding isn't ours
+            guard ours else { return e }
+            MainActor.assumeIsolated {
+                if self.panel.firstResponder is NSTextView { // end text editing first
+                    self.panel.makeFirstResponder(nil)
+                } else {
+                    self.hide()
+                }
+            }
             return nil
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel], handler: { [weak self] e in
