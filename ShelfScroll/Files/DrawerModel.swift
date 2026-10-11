@@ -90,7 +90,7 @@ final class DrawerModel {
         for url in urls { try trashItem(url) }
     }
 
-    @discardableResult func drop(_ urls: [URL], operation: DropOperation) throws -> [URL] {
+    @discardableResult func drop(_ urls: [URL], operation: FileDropOperation) throws -> [URL] {
         defer { reload() }
         return try urls.map { try perform(operation, $0, into: current) }
     }

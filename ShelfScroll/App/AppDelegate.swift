@@ -14,6 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipStore: ClipStore!
     private var clipboardMonitor: ClipboardMonitor!
     private var paster: Paster!
+    private var drawer: DrawerModel!
+    private var cleanup: CleanupScheduler!
+    private var screenshots: ScreenshotWatcher!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests use the app as host; don't show windows or install monitors there.
@@ -21,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = Self.editMenu()
         shelf = ShelfController(settings: settings)
         setUpClipboard()
+        setUpFiles()
         edgeMonitor = EdgeTriggerMonitor(settings: settings) { [weak self] decision in
             self?.handle(decision)
         }
@@ -64,6 +68,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         shelf.onHide.append { ThumbnailCache.shared.purge() }
+    }
+
+    private func setUpFiles() {
+        drawer = DrawerModel(root: settings.filesFolder, isDefaultRoot: settings.isDefaultFilesFolder)
+        syncDrawer()
+        cleanup = CleanupScheduler(settings: settings, model: drawer)
+        cleanup.start()
+        screenshots = ScreenshotWatcher(settings: settings)
+        screenshots.start()
+        let (drawer, settings) = (drawer!, settings)
+        shelf.descriptors = shelf.descriptors.map { d in
+            guard d.id == .files else { return d }
+            return PanelDescriptor(id: .files, title: "Files") { AnyView(FilesPanel(model: drawer, settings: settings)) }
+        }
+    }
+
+    /// Keep the drawer model in step with Files settings.
+    private func syncDrawer() {
+        withObservationTracking {
+            let root = settings.filesFolder
+            if drawer.root.path != root.path {
+                drawer.isDefaultRoot = settings.isDefaultFilesFolder
+                drawer.root = root
+            }
+            drawer.arrangeBy = settings.arrangeBy
+            drawer.foldersOnTop = settings.foldersOnTop
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.syncDrawer() }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -2,7 +2,7 @@ import AppKit
 import Testing
 @testable import ShelfScroll
 
-@Suite struct DropOperationTests {
+@Suite struct FileDropOperationTests {
     let dir = tempDir()
 
     func touch(_ name: String, in d: URL? = nil) -> URL {
@@ -12,10 +12,10 @@ import Testing
     }
 
     @Test func modifierMapping() {
-        #expect(DropOperation.from([]) == .move)
-        #expect(DropOperation.from([.option]) == .copy)
-        #expect(DropOperation.from([.command, .option]) == .alias)
-        #expect(DropOperation.from([.command]) == .move)
+        #expect(FileDropOperation.from([]) == .move)
+        #expect(FileDropOperation.from([.option]) == .copy)
+        #expect(FileDropOperation.from([.command, .option]) == .alias)
+        #expect(FileDropOperation.from([.command]) == .move)
     }
 
     @Test func uniqueNames() throws {

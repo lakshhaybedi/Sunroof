@@ -1,10 +1,10 @@
 import AppKit
 
 /// What a drop into the drawer does, matching Finder: plain = move, ⌥ = copy, ⌘⌥ = alias.
-enum DropOperation: Equatable {
+enum FileDropOperation: Equatable {
     case move, copy, alias
 
-    static func from(_ flags: NSEvent.ModifierFlags) -> DropOperation {
+    static func from(_ flags: NSEvent.ModifierFlags) -> FileDropOperation {
         if flags.contains(.option) { return flags.contains(.command) ? .alias : .copy }
         return .move
     }
@@ -27,7 +27,7 @@ func uniqueDestination(for name: String, in dir: URL) -> URL {
 
 /// Moves, copies or aliases `source` into `dir` under a free name. Moving a file onto its own folder is a no-op.
 @discardableResult
-func perform(_ op: DropOperation, _ source: URL, into dir: URL) throws -> URL {
+func perform(_ op: FileDropOperation, _ source: URL, into dir: URL) throws -> URL {
     let fm = FileManager.default
     if op == .move, source.deletingLastPathComponent().standardizedFileURL == dir.standardizedFileURL { return source }
     let dest = uniqueDestination(for: source.lastPathComponent, in: dir)
