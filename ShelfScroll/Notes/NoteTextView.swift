@@ -328,7 +328,7 @@ final class NoteTextView: NSTextView {
         default:
             break
         }
-        if case let .checklist(_, true) = style.block, let blockMarker {
+        if case .checklist(_, true) = style.block, let blockMarker {
             let rest = NSRange(location: NSMaxRange(blockMarker), length: NSMaxRange(content) - NSMaxRange(blockMarker))
             ts.addAttributes([.strikethroughStyle: NSUnderlineStyle.single.rawValue,
                               .foregroundColor: NSColor.secondaryLabelColor], range: rest)
@@ -396,6 +396,15 @@ final class NoteTextView: NSTextView {
             }
         }
         return out
+    }
+
+    /// Rect of the first line of the selection, in view coordinates (for the formatting bar).
+    var selectionRect: NSRect? {
+        let sel = selectedRange()
+        guard sel.length > 0 else { return nil }
+        let ns = string as NSString
+        let firstLine = NSIntersectionRange(sel, ns.lineRange(for: NSRange(location: sel.location, length: 0)))
+        return rect(for: firstLine.length > 0 ? firstLine : sel)
     }
 
     private func rect(for range: NSRange) -> NSRect? {

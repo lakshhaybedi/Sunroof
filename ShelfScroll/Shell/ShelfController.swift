@@ -21,6 +21,8 @@ final class ShelfController {
     var onHide: [() -> Void] = []
     /// Called after the panel is shown and key.
     var onShow: [() -> Void] = []
+    /// The column `show` was asked to focus (nil = default).
+    private(set) var requestedFocus: PanelID?
     /// Frontmost app when the shelf opened — the paste target.
     private(set) var previousApp: NSRunningApplication?
     var isVisible: Bool { panel.isVisible && hideGeneration == 0 }
@@ -65,6 +67,7 @@ final class ShelfController {
     func show(on screen: NSScreen, focus: PanelID?) {
         hideGeneration = 0
         self.screen = screen
+        requestedFocus = focus
         let front = NSWorkspace.shared.frontmostApplication
         if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier { previousApp = front }
         rebuildColumnsIfNeeded()
