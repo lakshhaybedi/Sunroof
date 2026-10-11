@@ -6,6 +6,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private(set) var shelf: ShelfController!
     private var edgeMonitor: EdgeTriggerMonitor!
+    private var statusItem: StatusItemController!
+    private(set) var settingsWindow: SettingsWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         shelf = ShelfController(settings: settings)
@@ -15,6 +17,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edgeMonitor.isSuspended = { [weak self] in self?.shelf.isVisible ?? false }
         shelf.onVisibilityChange = { [weak self] _ in self?.edgeMonitor.reset() }
         edgeMonitor.start()
+
+        settingsWindow = SettingsWindowController(settings: settings)
+        statusItem = StatusItemController(settings: settings,
+                                          onToggle: { [weak self] in self?.toggleShelf() },
+                                          onOpenSettings: { [weak self] in self?.settingsWindow.show() })
 
         KeyboardShortcuts.onKeyUp(for: .togglePanel) { [weak self] in
             self?.toggleShelf()

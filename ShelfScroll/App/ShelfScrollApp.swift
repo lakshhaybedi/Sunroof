@@ -5,6 +5,7 @@ struct ShelfScrollApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        Settings { Text("Settings") }
+        // Settings live in SettingsWindowController; an App needs at least one scene.
+        Settings { EmptyView() }
     }
 }
