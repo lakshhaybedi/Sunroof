@@ -1,7 +1,8 @@
 #!/bin/bash
 # Usage: scripts/perf.sh [path/to/ShelfScroll.app]
 # Measures idle memory / CPU / wake-ups / threads with the shelf closed and open, against the §8 budget.
-# Uses temporary Files/Notes/Favorites folders and restores your ShelfScroll settings afterwards.
+# Uses temporary Files/Notes/Favorites folders, pauses clipboard recording, and restores your settings afterwards.
+# (Clipboard history in ~/Library/Application Support/ShelfScroll is read, never changed while paused.)
 set -uo pipefail
 cd "$(dirname "$0")/.."
 APP="${1:-build/Build/Products/Release/ShelfScroll.app}"
@@ -14,7 +15,10 @@ defaults export "$DOMAIN" "$BACKUP" 2>/dev/null && HAD_DEFAULTS=1
 cleanup() {
     pkill -x ShelfScroll 2>/dev/null
     defaults delete "$DOMAIN" 2>/dev/null
-    [ "$HAD_DEFAULTS" = 1 ] && defaults import "$DOMAIN" "$BACKUP"
+    if [ "$HAD_DEFAULTS" = 1 ] && ! defaults import "$DOMAIN" "$BACKUP"; then
+        echo "Couldn't restore your settings — backup kept at $BACKUP (restore: defaults import $DOMAIN \"$BACKUP\")"
+        return
+    fi
     rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -25,6 +29,7 @@ defaults write "$DOMAIN" settings.hasCompletedOnboarding -bool true
 defaults write "$DOMAIN" settings.filesFolder "$WORK/Files"
 defaults write "$DOMAIN" settings.notesFolder "$WORK/Notes"
 defaults write "$DOMAIN" settings.favoritesFolder "$WORK/Favorites"
+defaults write "$DOMAIN" settings.clipboardPaused -bool true # don't record what you copy during the run
 
 measure() { # $1 = label
     open "$APP"; sleep 60

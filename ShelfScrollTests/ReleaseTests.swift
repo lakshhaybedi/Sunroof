@@ -21,4 +21,9 @@ import Testing
     @Test func hasAppIcon() {
         #expect(info("CFBundleIconName") as? String == "AppIcon")
     }
+
+    // Review C1: Sparkle compares CFBundleVersion; the appcast publishes the marketing version — they must match.
+    @Test func buildNumberMatchesVersion() {
+        #expect(info("CFBundleVersion") as? String == info("CFBundleShortVersionString") as? String)
+    }
 }

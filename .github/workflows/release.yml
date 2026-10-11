@@ -80,6 +80,15 @@ jobs:
           DMG=$(scripts/make-dmg.sh "$APP" dist)
           echo "DMG=$DMG" >> "$GITHUB_ENV"
 
+      - name: Warn about partial setup
+        run: |
+          if [ "$HAS_SIGNING" = "true" ] && [ "$HAS_NOTARY" != "true" ]; then
+            echo "::warning::Signed but NOT notarized (ASC_* secrets missing) — Gatekeeper will block this download"
+          fi
+          if [ "$HAS_SPARKLE" = "true" ] && { [ "$HAS_SIGNING" != "true" ] || [ "$HAS_NOTARY" != "true" ]; }; then
+            echo "::warning::Skipping the appcast: updates are only published for signed + notarized builds"
+          fi
+
       - name: Notarize and staple
         if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
         env:
@@ -104,13 +113,19 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "ShelfScroll $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
 
       - name: Update Sparkle appcast (gh-pages)
-        if: env.HAS_SPARKLE == 'true'
+        # Only signed + notarized builds are offered as updates (an ad-hoc update would drop the user's permissions).
+        if: env.HAS_SPARKLE == 'true' && env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
+          KEY=$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$APP/Contents/Info.plist" 2>/dev/null || true)
+          if [ -z "$KEY" ]; then
+            echo "::error::SPARKLE_PUBLIC_KEY is empty in project.yml — shipped apps couldn't verify updates"
+            exit 1
+          fi
           SPARKLE_VERSION=$(python3 -c "import json; d=json.load(open('ShelfScroll.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved')); print(next(p['state']['version'] for p in d['pins'] if p['identity']=='sparkle'))")
-          curl -sSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP" ./bin/sign_update
-          SIG=$(echo "$SPARKLE_ED_PRIVATE_KEY" | "$RUNNER_TEMP/bin/sign_update" --ed-key-file - "$DMG")
+          curl -sSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+          SIG=$(echo "$SPARKLE_ED_PRIVATE_KEY" | "$(find "$RUNNER_TEMP" -name sign_update -type f | head -1)" --ed-key-file - "$DMG")
           URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$(basename "$DMG")"
           git fetch origin gh-pages || true
           git worktree add -B gh-pages "$RUNNER_TEMP/pages" origin/gh-pages 2>/dev/null || git worktree add --orphan -b gh-pages "$RUNNER_TEMP/pages"

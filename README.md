@@ -10,7 +10,7 @@ Plus Send to Note, ⌘⇧F search across everything, and floating sticky notes. 
 
 ## Install
 
-Download the latest `.dmg` from [Releases](https://github.com/lakshhaybedi/ShelfScroll/releases), open it and drag ShelfScroll to Applications.
+Download the latest `.dmg` from [Releases](https://github.com/lakshhaybedi/ShelfScroll/releases), open it and drag ShelfScroll to Applications. If a release is marked *unsigned*, macOS blocks the first launch: try to open it once, then go to System Settings › Privacy & Security and click **Open Anyway**.
 
 ## Permissions
 

@@ -9,7 +9,7 @@ xcodebuild -project ShelfScroll.xcodeproj -scheme ShelfScroll -configuration Rel
 scripts/make-dmg.sh build/Build/Products/Release/ShelfScroll.app dist
 ```
 
-Local builds are signed ad-hoc and can't auto-update. macOS will warn the first time you open one: right-click the app → **Open**.
+Local builds are signed ad-hoc and can't auto-update. macOS blocks the first launch of an unsigned download: open it once, then System Settings › Privacy & Security › **Open Anyway** (macOS 15+ no longer offers right-click → Open). For a build you made yourself there's no quarantine and it opens normally.
 
 `scripts/perf.sh` measures memory, CPU, wake-ups and threads against the performance budget (it uses temporary folders and restores your settings).
 
@@ -30,8 +30,8 @@ Local builds are signed ad-hoc and can't auto-update. macOS will warn the first 
 
 ## Each release
 
-1. Bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`) in `project.yml`.
+1. Bump `MARKETING_VERSION` in `project.yml` (the build number follows it automatically — Sparkle compares it).
 2. Add a `## X.Y.Z` section at the top of `CHANGELOG.md`.
 3. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`.
 
-The **Release** workflow tests, builds a Universal app, signs it with your Developer ID (hardened runtime), notarizes and staples the `.dmg`, publishes a GitHub Release with the changelog section, and adds the update to the appcast. Any step whose secrets are missing is skipped; without signing secrets you get an unsigned `.dmg` and a warning.
+The **Release** workflow tests, builds a Universal app, signs it with your Developer ID (hardened runtime), notarizes and staples the `.dmg`, publishes a GitHub Release with the changelog section, and adds the update to the appcast. Any step whose secrets are missing is skipped with a warning; without signing secrets you get an unsigned `.dmg`. Updates are only added to the appcast for signed **and** notarized builds.
