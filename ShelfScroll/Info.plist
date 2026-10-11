@@ -13,6 +13,10 @@
 	<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key><string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>LSUIElement</key><true/>
+	<key>SUFeedURL</key><string>https://lakshhaybedi.github.io/ShelfScroll/appcast.xml</string>
+	<key>SUPublicEDKey</key><string>$(SPARKLE_PUBLIC_KEY)</string>
+	<key>SUEnableAutomaticChecks</key><true/>
+	<key>SUScheduledCheckInterval</key><integer>86400</integer>
 	<key>NSHumanReadableCopyright</key><string>© 2026 Lakshhay Bedi. MIT License.</string>
 </dict>
 </plist>

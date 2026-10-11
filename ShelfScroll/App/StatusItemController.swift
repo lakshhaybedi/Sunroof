@@ -7,12 +7,15 @@ final class StatusItemController: NSObject {
     private let settings: AppSettings
     private let onToggle: () -> Void
     private let onOpenSettings: () -> Void
+    private let onCheckForUpdates: () -> Void
     private var item: NSStatusItem?
 
-    init(settings: AppSettings, onToggle: @escaping () -> Void, onOpenSettings: @escaping () -> Void) {
+    init(settings: AppSettings, onToggle: @escaping () -> Void, onOpenSettings: @escaping () -> Void,
+         onCheckForUpdates: @escaping () -> Void = {}) {
         self.settings = settings
         self.onToggle = onToggle
         self.onOpenSettings = onOpenSettings
+        self.onCheckForUpdates = onCheckForUpdates
         super.init()
         sync()
     }
@@ -58,6 +61,9 @@ final class StatusItemController: NSObject {
         pause.state = settings.clipboardPaused ? .on : .off
         menu.addItem(pause)
         menu.addItem(.separator())
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        menu.addItem(updates)
         let prefs = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         prefs.target = self
         menu.addItem(prefs)
@@ -69,4 +75,5 @@ final class StatusItemController: NSObject {
 
     @objc private func togglePause() { settings.clipboardPaused.toggle() }
     @objc private func openSettings() { onOpenSettings() }
+    @objc private func checkForUpdates() { onCheckForUpdates() }
 }

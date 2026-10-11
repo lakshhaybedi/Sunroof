@@ -1,5 +1,6 @@
 import AppKit
 import KeyboardShortcuts
+import Sparkle
 import ServiceManagement
 import SwiftUI
 
@@ -8,12 +9,16 @@ import SwiftUI
 final class SettingsWindowController {
     private var window: NSWindow?
     private let settings: AppSettings
+    private let updater: SPUUpdater?
 
-    init(settings: AppSettings) { self.settings = settings }
+    init(settings: AppSettings, updater: SPUUpdater?) {
+        self.settings = settings
+        self.updater = updater
+    }
 
     func show() {
         if window == nil {
-            let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView().environment(settings)))
+            let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(updater: updater).environment(settings)))
             w.title = "ShelfScroll Settings"
             w.styleMask = [.titled, .closable]
             w.isReleasedWhenClosed = false
@@ -26,10 +31,12 @@ final class SettingsWindowController {
 }
 
 struct SettingsView: View {
+    var updater: SPUUpdater?
+
     var body: some View {
         // Plans 2–4 insert Files, Notes and Clipboard tabs after General.
         TabView {
-            GeneralSettings().tabItem { Label("General", systemImage: "switch.2") }
+            GeneralSettings(updater: updater).tabItem { Label("General", systemImage: "switch.2") }
             FilesSettings().tabItem { Label("Files", systemImage: "folder") }
             NotesSettings().tabItem { Label("Notes", systemImage: "note.text") }
             ClipboardSettings().tabItem { Label("Clipboard", systemImage: "clipboard") }
@@ -43,7 +50,9 @@ struct SettingsView: View {
 }
 
 private struct GeneralSettings: View {
+    var updater: SPUUpdater?
     @Environment(AppSettings.self) private var settings
+    @State private var autoUpdates = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
@@ -87,6 +96,11 @@ private struct GeneralSettings: View {
                 KeyboardShortcuts.Recorder("or just press", name: .togglePanel)
             }
             Toggle("Show menu bar icon", isOn: $settings.showMenuBarIcon)
+            if let updater {
+                Toggle("Automatically check for updates", isOn: $autoUpdates)
+                    .onAppear { autoUpdates = updater.automaticallyChecksForUpdates }
+                    .onChange(of: autoUpdates) { _, on in updater.automaticallyChecksForUpdates = on }
+            }
         }
         .formStyle(.grouped)
     }

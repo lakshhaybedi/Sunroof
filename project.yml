@@ -7,6 +7,9 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: 2.0.0
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.0
 targets:
   ShelfScroll:
     type: application
@@ -14,6 +17,7 @@ targets:
     sources: [ShelfScroll]
     dependencies:
       - package: KeyboardShortcuts
+      - package: Sparkle
     settings:
       base:
         INFOPLIST_FILE: ShelfScroll/Info.plist
@@ -27,6 +31,7 @@ targets:
         MARKETING_VERSION: 0.1.0
         CURRENT_PROJECT_VERSION: 1
         GENERATE_INFOPLIST_FILE: NO
+        SPARKLE_PUBLIC_KEY: ""   # set from Sparkle's generate_keys (see RELEASING.md)
       configs:
         Release:
           ARCHS: "arm64 x86_64"

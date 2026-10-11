@@ -1,11 +1,14 @@
 import AppKit
 import KeyboardShortcuts
 import os
+import Sparkle
 import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
+    /// Sparkle; started only in the real app (not the unit-test host).
+    private(set) var updater: SPUStandardUpdaterController?
     private(set) var shelf: ShelfController!
     private var edgeMonitor: EdgeTriggerMonitor!
     private var statusItem: StatusItemController!
@@ -28,6 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Unit tests use the app as host; don't show windows or install monitors there.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         NSApp.mainMenu = Self.editMenu()
+        // Without a public EdDSA key (local/unsigned builds) Sparkle would alert "updater failed to start" at every launch.
+        let key = Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String ?? ""
+        if !key.isEmpty {
+            updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        }
         shelf = ShelfController(settings: settings)
         setUpClipboard()
         setUpFiles()
@@ -43,10 +51,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         edgeMonitor.start()
 
-        settingsWindow = SettingsWindowController(settings: settings)
+        settingsWindow = SettingsWindowController(settings: settings, updater: updater?.updater)
         statusItem = StatusItemController(settings: settings,
                                           onToggle: { [weak self] in self?.toggleShelf() },
-                                          onOpenSettings: { [weak self] in self?.settingsWindow.show() })
+                                          onOpenSettings: { [weak self] in self?.settingsWindow.show() },
+                                          onCheckForUpdates: { [weak self] in
+                                              guard let updater = self?.updater else {
+                                                  Toast.show("Updates aren't set up for this build.")
+                                                  return
+                                              }
+                                              NSApp.activate()
+                                              updater.checkForUpdates(nil)
+                                          })
 
         KeyboardShortcuts.onKeyUp(for: .togglePanel) { [weak self] in
             self?.toggleShelf()
