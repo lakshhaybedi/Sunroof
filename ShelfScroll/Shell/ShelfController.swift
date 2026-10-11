@@ -17,6 +17,10 @@ final class ShelfController {
     var descriptors: [PanelDescriptor] = PanelDescriptor.placeholders
 
     var onVisibilityChange: ((Bool) -> Void)?
+    /// Called when hiding starts (e.g. purge caches).
+    var onHide: [() -> Void] = []
+    /// Frontmost app when the shelf opened — the paste target.
+    private(set) var previousApp: NSRunningApplication?
     var isVisible: Bool { panel.isVisible && hideGeneration == 0 }
     var visibleFrame: CGRect? { isVisible ? panel.frame : nil }
     var displayKey: String? { screen.map(ShelfGeometry.displayKey) }
@@ -59,6 +63,8 @@ final class ShelfController {
     func show(on screen: NSScreen, focus: PanelID?) {
         hideGeneration = 0
         self.screen = screen
+        let front = NSWorkspace.shared.frontmostApplication
+        if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier { previousApp = front }
         rebuildColumnsIfNeeded()
         let saved = settings.height(forDisplay: ShelfGeometry.displayKey(screen))
             ?? screen.visibleFrame.height * ShelfGeometry.defaultFraction
@@ -110,6 +116,7 @@ final class ShelfController {
             }
         })
         onVisibilityChange?(false)
+        onHide.forEach { $0() }
     }
 
     func toggle(on screen: NSScreen) {
