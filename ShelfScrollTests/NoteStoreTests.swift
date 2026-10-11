@@ -243,4 +243,54 @@ import Testing
         s.syncFromDisk()
         #expect(s.note("A.md") != nil)
     }
+
+    // MARK: - Send to Note
+
+    @Test func appendingSeparates() {
+        #expect(NoteStore.appending("x", to: "A") == "A\n\nx")
+        #expect(NoteStore.appending("x", to: "A\n") == "A\n\nx")
+        #expect(NoteStore.appending("x", to: "A\n\n") == "A\n\nx")
+        #expect(NoteStore.appending("x", to: "") == "x")
+    }
+
+    @Test func appendToExistingSaves() throws {
+        try write("A.md", "A")
+        let s = store()
+        let r0 = s.note("A.md")!.revision
+        #expect(s.append("clip", to: "A.md") == "A.md")
+        s.saveAll()
+        #expect(try read("A.md") == "A\n\nclip")
+        #expect(s.note("A.md")!.revision == r0 + 1) // an open editor reloads
+    }
+
+    @Test func appendToNewNoteUsesFirstLineAsTitle() throws {
+        let s = store()
+        let name = s.append("Buy milk\nand eggs", to: nil)
+        s.saveAll()
+        #expect(name == "Buy milk.md")
+        #expect(try read("Buy milk.md") == "Buy milk\nand eggs")
+    }
+
+    @Test func appendImageCopiesAttachment() throws {
+        try write("Trip.md", "Trip")
+        let s = store()
+        s.appendImage(pngData(width: 2, height: 2), to: "Trip.md")
+        #expect(s.note("Trip.md")!.text == "Trip\n\n![](attachments/Trip-1.png)")
+        #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent("attachments/Trip-1.png").path))
+    }
+
+    // Review Focus 2: appending into a note with unsaved typing keeps both.
+    @Test func appendWhileDirtyKeepsBoth() {
+        let s = store()
+        let n = s.create(text: "A")
+        s.update(n.filename, text: "A\ntyped")
+        s.append("clip", to: n.filename)
+        #expect(s.note(n.filename)!.text == "A\ntyped\n\nclip")
+    }
+
+    @Test func recentTitles() throws {
+        try write("Old.md", "Old", modified: .init(timeIntervalSince1970: 1))
+        try write("New.md", "New", modified: .init(timeIntervalSince1970: 2))
+        #expect(store().recentNoteTitles.map(\.title) == ["New", "Old"])
+    }
 }

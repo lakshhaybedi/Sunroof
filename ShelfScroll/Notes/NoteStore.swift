@@ -67,6 +67,13 @@ final class NoteStore {
         scheduleSave()
     }
 
+    func markEdited(_ filename: String) { edited.insert(filename) }
+
+    func markDirty(_ filename: String) {
+        dirty.insert(filename)
+        scheduleSave()
+    }
+
     /// Flushes the note and, if its title changed while editing, renames the file to match. Returns the current filename.
     @discardableResult func finishEditing(_ filename: String) -> String {
         saveAll()
@@ -286,5 +293,38 @@ final class NoteStore {
             return (ns as String).trimmingCharacters(in: .whitespaces)
         }
         return String(stripped.joined(separator: " ").prefix(140))
+    }
+}
+
+// MARK: - Send to Note
+
+extension NoteStore: NoteAppending {
+    var recentNoteTitles: [(filename: String, title: String)] {
+        notes.sorted { $0.modified > $1.modified }.prefix(8).map { ($0.filename, $0.title.isEmpty ? $0.filename : $0.title) }
+    }
+
+    @discardableResult func append(_ text: String, to filename: String?) -> String {
+        guard let filename, let i = notes.firstIndex(where: { $0.filename == filename }) else {
+            let note = create(text: text)
+            markEdited(note.filename) // title it from the clip's first line
+            return finishEditing(note.filename)
+        }
+        notes[i].text = Self.appending(text, to: notes[i].text)
+        notes[i].modified = .now
+        notes[i].revision += 1 // an open editor reloads the combined text
+        markDirty(filename)
+        return filename
+    }
+
+    @discardableResult func appendImage(_ png: Data, to filename: String?) -> String {
+        let path = saveAttachment(png, for: filename ?? "Image.md")
+        return append(filename == nil ? "Image\n\n![](\(path))" : "![](\(path))", to: filename)
+    }
+
+    /// `text` + blank line + `addition` (no extra blank lines when `text` already ends with newlines).
+    nonisolated static func appending(_ addition: String, to text: String) -> String {
+        var base = text
+        while base.hasSuffix("\n") { base.removeLast() }
+        return base.isEmpty ? addition : base + "\n\n" + addition
     }
 }

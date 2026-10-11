@@ -5,6 +5,7 @@ struct ClipboardPanel: View {
     let store: ClipStore
     let settings: AppSettings
     let paster: Paster
+    var notes: NoteAppending? = nil
 
     @State private var showFavorites = false
     @State private var searching = false
@@ -174,6 +175,15 @@ struct ClipboardPanel: View {
         if !clip.isSensitive {
             Button(store.isFavorite(clip) ? "Unfavorite" : "Favorite") { store.toggleFavorite(clip) }
         }
+        if let notes, !clip.isSensitive {
+            Menu("Send to Note") {
+                ForEach(notes.recentNoteTitles, id: \.filename) { note in
+                    Button(note.title) { send(clip, to: note.filename, notes) }
+                }
+                Divider()
+                Button("New Note") { send(clip, to: nil, notes) }
+            }
+        }
         if !showFavorites {
             Divider()
             Button("Delete", role: .destructive) { store.delete(clip.id) }
@@ -181,6 +191,21 @@ struct ClipboardPanel: View {
     }
 
     // MARK: - Actions
+
+    private func send(_ clip: Clip, to filename: String?, _ notes: NoteAppending) {
+        let name: String
+        switch clip.kind {
+        case .image:
+            guard let url = store.imageURL(for: clip), let png = try? Data(contentsOf: url) else { return }
+            name = notes.appendImage(png, to: filename)
+        case .files:
+            let links = (clip.fileURLs ?? []).map { "[\($0.lastPathComponent)](\($0.absoluteString))" }
+            name = notes.append(links.joined(separator: "\n"), to: filename)
+        default:
+            name = notes.append(clip.text ?? "", to: filename)
+        }
+        Toast.show("Added to \((name as NSString).deletingPathExtension)")
+    }
 
     private func select(_ clip: Clip) {
         selection = clip.id

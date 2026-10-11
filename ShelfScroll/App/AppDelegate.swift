@@ -66,8 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let (store, settings, paster) = (clipStore!, settings, paster!)
         shelf.descriptors = PanelDescriptor.placeholders.map { d in
             guard d.id == .clipboard else { return d }
-            return PanelDescriptor(id: .clipboard, title: "Clipboard") {
-                AnyView(ClipboardPanel(store: store, settings: settings, paster: paster))
+            return PanelDescriptor(id: .clipboard, title: "Clipboard") { [weak self] in
+                AnyView(ClipboardPanel(store: store, settings: settings, paster: paster, notes: self?.noteStore))
             }
         }
         shelf.onHide.append { ThumbnailCache.shared.purge() }
