@@ -90,6 +90,23 @@ func render(_ t: TextEdit?) -> String? {
         #expect(render(ListEditing.toggleInline(wrapped, open: "**", close: "**")) == "‹- a\n- b›")
     }
 
+    // Feedback: links — paste a URL, press Return.
+    @Test func insertLinkAroundSelection() {
+        #expect(render(ListEditing.insertLink(te("see ‹docs› now"), url: "https://x.com")) == "see [docs](https://x.com)| now")
+        #expect(render(ListEditing.insertLink(te("‹- [ ] task\n›"), url: "x.com")) == "- [ ] [task](https://x.com)|\n")
+    }
+
+    @Test func insertBareLinkAtCaret() {
+        #expect(render(ListEditing.insertLink(te("go to |"), url: "  https://apple.com\n")) == "go to https://apple.com|")
+    }
+
+    @Test func normalizesURLs() {
+        #expect(ListEditing.normalizedURL("apple.com") == "https://apple.com")
+        #expect(ListEditing.normalizedURL("mailto:me@x.com") == "mailto:me@x.com")
+        #expect(ListEditing.normalizedURL("http://x.com/a b") == "http://x.com/a%20b") // spaces would end the link
+        #expect(ListEditing.normalizedURL("   ") == nil)
+    }
+
     @Test func toggleBlock() {
         #expect(render(ListEditing.toggleBlock(te("- x|"), .heading(2))) == "## x|")
         #expect(render(ListEditing.toggleBlock(te("## x|"), .heading(2))) == "x|")

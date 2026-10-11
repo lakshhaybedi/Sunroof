@@ -106,4 +106,23 @@ import Testing
         #expect(color(tv, at: 3) == .clear)
         #expect((font?.pointSize ?? 99) < 1)
     }
+
+    @Test func linkEntryInsertsOnCommit() {
+        let tv = view("see docs now")
+        tv.setSelectedRange(NSRange(location: 4, length: 4))
+        tv.insertLink()
+        #expect(tv.isEnteringLink)
+        tv.commitLink("https://x.com")
+        #expect(tv.string == "see [docs](https://x.com) now")
+        #expect(!tv.isEnteringLink)
+    }
+
+    @Test func linkEntryCancelLeavesTextAlone() {
+        let tv = view("see docs now")
+        tv.setSelectedRange(NSRange(location: 4, length: 4))
+        tv.insertLink()
+        tv.commitLink(nil)
+        #expect(tv.string == "see docs now")
+        #expect(!tv.isEnteringLink)
+    }
 }

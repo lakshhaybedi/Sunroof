@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 enum Decoration: Equatable {
     case checkbox(range: NSRange, checked: Bool) // the "[ ]" characters
@@ -177,11 +178,40 @@ final class NoteTextView: NSTextView {
     func toggleBlock(_ change: BlockChange) { perform(ListEditing.toggleBlock(currentEdit, change)) }
     func moveLine(up: Bool) { perform(ListEditing.moveLine(currentEdit, up: up)) }
 
+    // MARK: - Link entry
+
+    private var linkField: NSView?
+    private var linkTarget: NSRange?
+    var isEnteringLink: Bool { linkTarget != nil }
+
+    /// ⌘K / link button: a small field under the selection; Return inserts the link, Esc or clicking away cancels.
     func insertLink() {
+        commitLink(nil)
         let sel = selectedRange()
-        let inner = (string as NSString).substring(with: sel)
-        let text = (string as NSString).replacingCharacters(in: sel, with: "[\(inner)]()")
-        perform(TextEdit(text: text, selection: NSRange(location: sel.location + (inner as NSString).length + 3, length: 0)))
+        linkTarget = sel
+        let length = (string as NSString).length
+        let anchorRange = sel.length > 0 ? sel : NSRange(location: max(0, min(sel.location, length) - 1), length: length > 0 ? 1 : 0)
+        let anchor = rect(for: anchorRange) ?? NSRect(x: textContainerOrigin.x, y: textContainerOrigin.y, width: 0, height: fontSize)
+        let clip = NSPasteboard.general.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let suggested = clip.range(of: #"^(https?://|mailto:)\S+$"#, options: .regularExpression) != nil ? clip : ""
+        let host = NSHostingView(rootView: LinkField(initial: suggested) { [weak self] url in self?.commitLink(url) })
+        let size = NSSize(width: 300, height: 34)
+        host.frame = NSRect(x: max(4, min(anchor.minX, bounds.width - size.width - 4)), y: anchor.maxY + 4,
+                            width: size.width, height: size.height)
+        addSubview(host)
+        linkField = host
+    }
+
+    /// nil cancels.
+    func commitLink(_ url: String?) {
+        guard let target = linkTarget else { return }
+        linkTarget = nil
+        linkField?.removeFromSuperview()
+        linkField = nil
+        if let url, NSMaxRange(target) <= (string as NSString).length {
+            perform(ListEditing.insertLink(TextEdit(text: string, selection: target), url: url))
+        }
+        window?.makeFirstResponder(self)
     }
 
     func toggleCheckbox(at location: Int) {
@@ -539,5 +569,39 @@ final class NoteTextView: NSTextView {
         guard let box = ts.attribute(.noteDecoration, at: i, effectiveRange: &range) as? DecorationBox,
               let r = rect(for: range), r.insetBy(dx: -4, dy: -2).contains(p) else { return nil }
         return (box.kind, range)
+    }
+}
+
+/// The small "paste a link" field shown under the selection.
+private struct LinkField: View {
+    @State var url: String
+    let onDone: (String?) -> Void
+    @FocusState private var focused: Bool
+    @State private var done = false
+
+    init(initial: String, onDone: @escaping (String?) -> Void) {
+        _url = State(initialValue: initial)
+        self.onDone = onDone
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "link").foregroundStyle(.secondary)
+            TextField("Paste a link and press Return", text: $url)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .onSubmit { finish(url) }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .glassEffect(.regular, in: .capsule)
+        .overlay(Capsule().stroke(Color.accentColor.opacity(0.6), lineWidth: 1))
+        .onAppear { focused = true }
+        .onChange(of: focused) { _, f in if !f { finish(nil) } } // Esc / click away
+    }
+
+    private func finish(_ value: String?) {
+        guard !done else { return }
+        done = true
+        onDone(value)
     }
 }

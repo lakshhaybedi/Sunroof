@@ -174,17 +174,23 @@ enum ListEditing {
 
     /// Wraps/unwraps the selection. Markers never span lines (styling is per line): the selection is trimmed to
     /// the line's text (no line break, surrounding spaces or list marker), and multi-line selections wrap each line.
-    static func toggleInline(_ t: TextEdit, open: String, close: String) -> TextEdit {
-        guard t.selection.length > 0 else { return toggleInlineSpan(t, open: open, close: close) }
+    /// The part of each selected line that can be formatted (no list marker, line break or surrounding spaces).
+    private static func formattableSpans(_ t: TextEdit) -> (rows: ClosedRange<Int>, spans: [NSRange]) {
         let l = Lines(t.text)
         let rows = l.range(t.selection)
-        // The part of each selected line that can be formatted.
         let spans: [NSRange] = rows.compactMap { r in
             let lineStart = l.start(r), lineEnd = l.end(r)
             let start = max(t.selection.location, lineStart + prefix(l.lines[r]).length)
             let end = min(NSMaxRange(t.selection), lineEnd)
             return trimmed(NSRange(location: start, length: max(0, end - start)), in: t.text as NSString)
         }
+        return (rows, spans)
+    }
+
+    static func toggleInline(_ t: TextEdit, open: String, close: String) -> TextEdit {
+        guard t.selection.length > 0 else { return toggleInlineSpan(t, open: open, close: close) }
+        let l = Lines(t.text)
+        let (rows, spans) = formattableSpans(t)
         guard !spans.isEmpty else { return t }
         if spans.count == 1 {
             return toggleInlineSpan(TextEdit(text: t.text, selection: spans[0]), open: open, close: close)
@@ -239,6 +245,27 @@ enum ListEditing {
         }
         return TextEdit(text: ns.replacingCharacters(in: sel, with: open + inner + close),
                         selection: NSRange(location: sel.location + o, length: sel.length))
+    }
+
+    // MARK: - Links
+
+    /// `[selected text](url)` (first selected line's text), or the bare URL at the caret. Caret ends after the link.
+    static func insertLink(_ t: TextEdit, url raw: String) -> TextEdit {
+        guard let url = normalizedURL(raw) else { return t }
+        let ns = t.text as NSString
+        let target = t.selection.length > 0 ? formattableSpans(t).spans.first : nil
+        let range = target ?? NSRange(location: t.selection.location, length: 0)
+        let link = target.map { "[\(ns.substring(with: $0))](\(url))" } ?? url
+        return TextEdit(text: ns.replacingCharacters(in: range, with: link),
+                        selection: NSRange(location: range.location + (link as NSString).length, length: 0))
+    }
+
+    /// Trims, adds https:// to bare domains, and encodes spaces (which would end a markdown link).
+    static func normalizedURL(_ raw: String) -> String? {
+        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { return nil }
+        let hasScheme = s.range(of: #"^[A-Za-z][A-Za-z0-9+.-]*:"#, options: .regularExpression) != nil
+        return (hasScheme ? s : "https://" + s).replacingOccurrences(of: " ", with: "%20")
     }
 
     // MARK: - Block formatting
