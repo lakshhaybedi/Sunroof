@@ -13,6 +13,7 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 - [ ] Wait 0.5 s enabled: parking at the top opens after the pause; moving away cancels
 - [ ] Dragging a Finder file to the top opens it; dragging a window to the top does not
 - [ ] Recorded hotkey toggles from any app
+- [ ] Triggers still work while the Settings or onboarding window is frontmost
 - [ ] Menu bar icon: left click toggles, right click shows Pause / Settings… / Quit
 
 ## Window
