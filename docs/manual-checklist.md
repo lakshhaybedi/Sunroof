@@ -57,6 +57,21 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 - [ ] History limit 10 / 25 / 50 applies immediately; "opens with" applies on next open
 - [ ] History and favourites survive a relaunch; changing the favourites folder carries favourites over
 
+## Files
+- [ ] Drag from Finder into the column: moves; ⌥ copies (+ badge); ⌘⌥ makes an alias (+ badge)
+- [ ] Drag an image and a link from Safari: the image is saved; the link downloads (spinner cell, then the file)
+- [ ] Drag a file out to Finder / Mail
+- [ ] Dragging a file to the very top of the screen opens the shelf (Files)
+- [ ] ⚙︎ Arrange By Name / Kind / Date Added / Date Modified; Keep Folders on Top; Icons ⌘1 / List ⌘2; Item Size; all persist
+- [ ] Double-click a folder opens it in the panel; breadcrumbs and ‹ / ⌘↑ go back; ⌥-double-click opens in Finder
+- [ ] ⏎ renames (clash → " 2"); ⌘⌫ moves to Trash; Space Quick Look; ⌘O opens
+- [ ] Right-click: Open With, Show in Finder, Copy, Share, Move to Trash
+- [ ] 🔍 search finds files in subfolders
+- [ ] Finder changes to the folder appear live
+- [ ] Auto-cleanup "After 7 Days" with an old file → toast "Moved 1 old item to the Trash" (within ~10 s of launch)
+- [ ] Catch Screenshots on → ⇧⌘4 screenshot lands in Files/Screenshots (Desktop prompt appears once)
+- [ ] Change the Files folder in Settings; point it at a deleted folder → "Folder not found" + Choose…
+
 ## Performance (Release, measured 2026-10-11, Apple Silicon, macOS 27.0.1)
 
 | | Target | Measured |
@@ -69,3 +84,5 @@ Run from Xcode or `build/Build/Products/Release/ShelfScroll.app`. To redo first-
 | Binary | Universal | x86_64 + arm64, 2.0 MB |
 
 After Clipboard (45 text + 5 × 3000×2000 image clips): closed 20 MB, 0.0 % CPU, 4 threads; open 31 MB. Idle wake-ups (Activity Monitor) 0 — the 0.5 s clipboard timer still fires (~8 context switches/s) but is coalesced.
+
+After Files (300-file drawer incl. 100 × 3000×2000 PNGs): closed 21 MB, open 33 MB, 0.0 % CPU, 4 threads.
