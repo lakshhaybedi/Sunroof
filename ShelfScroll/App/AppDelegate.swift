@@ -8,14 +8,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var edgeMonitor: EdgeTriggerMonitor!
     private var statusItem: StatusItemController!
     private(set) var settingsWindow: SettingsWindowController!
+    private let onboarding = OnboardingWindowController()
+    private let onboardingState = OnboardingState()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests use the app as host; don't show windows or install monitors there.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         shelf = ShelfController(settings: settings)
         edgeMonitor = EdgeTriggerMonitor(settings: settings) { [weak self] decision in
             self?.handle(decision)
         }
         edgeMonitor.isSuspended = { [weak self] in self?.shelf.isVisible ?? false }
-        shelf.onVisibilityChange = { [weak self] _ in self?.edgeMonitor.reset() }
+        shelf.onVisibilityChange = { [weak self] visible in
+            self?.edgeMonitor.reset()
+            if visible { self?.onboardingState.shelfOpened = true }
+        }
         edgeMonitor.start()
 
         settingsWindow = SettingsWindowController(settings: settings)
@@ -25,6 +32,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyUp(for: .togglePanel) { [weak self] in
             self?.toggleShelf()
+        }
+
+        if !settings.hasCompletedOnboarding {
+            onboarding.show(pages: OnboardingView.shellPages(state: onboardingState)) { [weak self] in
+                self?.settings.hasCompletedOnboarding = true
+            }
+        } else if settings.openOnLaunch, let screen = Self.screenUnderMouse() {
+            shelf.show(on: screen, focus: nil)
         }
     }
 
