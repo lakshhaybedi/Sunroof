@@ -38,28 +38,45 @@ import Testing
 
     let panel = CGRect(x: 0, y: 549, width: 1512, height: 400)
     let nearBottom = CGPoint(x: 700, y: 560)
+    let inMenuBar = CGPoint(x: 700, y: 970)
 
-    @Test func closeOnSingleLargeScrollUpNearBottom() {
-        var c = ScrollCloseTracker()
-        do { let r = c.add(upAmount: 8, point: nearBottom, panelFrame: panel, time: 0); #expect(r) }
+    // Scroll up closes where scroll down opened (the menu bar strip at the top of the screen) and at the bottom edge.
+    @Test func closeZones() {
+        #expect(ShelfGeometry.isInCloseZone(inMenuBar, panelFrame: panel, screenFrame: screen))
+        #expect(ShelfGeometry.isInCloseZone(CGPoint(x: 700, y: 981), panelFrame: panel, screenFrame: screen))
+        #expect(ShelfGeometry.isInCloseZone(nearBottom, panelFrame: panel, screenFrame: screen))
+        #expect(!ShelfGeometry.isInCloseZone(CGPoint(x: 700, y: 700), panelFrame: panel, screenFrame: screen))
+        #expect(!ShelfGeometry.isInCloseZone(CGPoint(x: 2000, y: 970), panelFrame: panel, screenFrame: screen))
     }
 
-    @Test func closeIgnoresScrollAwayFromBottom() {
-        var c = ScrollCloseTracker()
-        do { let r = c.add(upAmount: 8, point: CGPoint(x: 700, y: 700), panelFrame: panel, time: 0); #expect(!r) }
+    // Hidden menu bar (full screen): the panel reaches the screen top; its top 2 pt is the edge.
+    @Test func closeZoneWithHiddenMenuBar() {
+        let full = CGRect(x: 0, y: 582, width: 1512, height: 400)
+        #expect(ShelfGeometry.isInCloseZone(CGPoint(x: 700, y: 981), panelFrame: full, screenFrame: screen))
+        #expect(!ShelfGeometry.isInCloseZone(CGPoint(x: 700, y: 900), panelFrame: full, screenFrame: screen))
     }
 
-    // Review: slow swipes (1–3 pt per event) must accumulate to a close.
+    @Test func closeOnSingleLargeScrollUp() {
+        var c = ScrollCloseTracker()
+        do { let r = c.add(upAmount: 8, inZone: true, time: 0); #expect(r) }
+    }
+
+    @Test func closeIgnoresScrollOutsideZone() {
+        var c = ScrollCloseTracker()
+        do { let r = c.add(upAmount: 8, inZone: false, time: 0); #expect(!r) }
+    }
+
+    // Slow swipes (1–3 pt per event) accumulate to a close.
     @Test func closeAccumulatesSmallScrolls() {
         var c = ScrollCloseTracker()
-        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 0); #expect(!r) }
-        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 0.05); #expect(!r) }
-        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 0.1); #expect(r) }
+        do { let r = c.add(upAmount: 2, inZone: true, time: 0); #expect(!r) }
+        do { let r = c.add(upAmount: 2, inZone: true, time: 0.05); #expect(!r) }
+        do { let r = c.add(upAmount: 2, inZone: true, time: 0.1); #expect(r) }
     }
 
     @Test func closeAccumulatorResetsOnPause() {
         var c = ScrollCloseTracker()
-        _ = c.add(upAmount: 4, point: nearBottom, panelFrame: panel, time: 0)
-        do { let r = c.add(upAmount: 2, point: nearBottom, panelFrame: panel, time: 5); #expect(!r) }
+        _ = c.add(upAmount: 4, inZone: true, time: 0)
+        do { let r = c.add(upAmount: 2, inZone: true, time: 5); #expect(!r) }
     }
 }

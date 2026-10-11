@@ -194,17 +194,21 @@ final class ShelfController {
             }
             return nil
         }) { monitors.append(m) }
+        // Scroll up closes: in the menu bar strip (a global event — not our window) or at the shelf's edges (local).
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel], handler: { [weak self] e in
-            MainActor.assumeIsolated {
-                guard let self, e.momentumPhase == [] else { return }
-                let up = -normalizedDownAmount(e, invert: self.settings.invertScroll)
-                if self.closeTracker.add(upAmount: up, point: NSEvent.mouseLocation, panelFrame: self.panel.frame,
-                                         time: ProcessInfo.processInfo.systemUptime) {
-                    self.hide()
-                }
-            }
+            MainActor.assumeIsolated { self?.scrollToClose(e) }
             return e
         }) { monitors.append(m) }
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel], handler: { [weak self] e in
+            MainActor.assumeIsolated { self?.scrollToClose(e) }
+        }) { monitors.append(m) }
+    }
+
+    private func scrollToClose(_ e: NSEvent) {
+        guard e.momentumPhase == [], let screen else { return }
+        let up = -normalizedDownAmount(e, invert: settings.invertScroll)
+        let inZone = ShelfGeometry.isInCloseZone(NSEvent.mouseLocation, panelFrame: panel.frame, screenFrame: screen.frame)
+        if closeTracker.add(upAmount: up, inZone: inZone, time: ProcessInfo.processInfo.systemUptime) { hide() }
     }
 
     private func removeMonitors() {

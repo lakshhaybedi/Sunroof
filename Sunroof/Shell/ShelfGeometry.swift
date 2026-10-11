@@ -18,20 +18,27 @@ enum ShelfGeometry {
     }
 
 
+    /// Where scrolling up closes the shelf: the strip above it (menu bar — where scroll-down opened it),
+    /// the screen's top 2 pt when the menu bar is hidden, or the bottom `closeZone` of the shelf.
+    static func isInCloseZone(_ p: CGPoint, panelFrame: CGRect, screenFrame: CGRect) -> Bool {
+        guard p.x >= screenFrame.minX, p.x < screenFrame.maxX, p.y <= screenFrame.maxY + 1 else { return false }
+        if p.y >= panelFrame.maxY || p.y >= screenFrame.maxY - EdgeTrigger.edgeTolerance { return true }
+        return panelFrame.contains(p) && p.y <= panelFrame.minY + closeZone
+    }
+
     @MainActor static func displayKey(_ screen: NSScreen) -> String {
         let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
         return "display-\(id?.uint32Value ?? 0)"
     }
 }
 
-/// Accumulates scroll-up near the shelf's bottom edge; true once it adds up to a close.
+/// Accumulates scroll-up inside a close zone; true once it adds up to a close.
 struct ScrollCloseTracker {
     private var total: CGFloat = 0
     private var lastTime: TimeInterval = -.infinity
 
-    mutating func add(upAmount: CGFloat, point: CGPoint, panelFrame: CGRect, time: TimeInterval) -> Bool {
+    mutating func add(upAmount: CGFloat, inZone: Bool, time: TimeInterval) -> Bool {
         defer { lastTime = time }
-        let inZone = panelFrame.contains(point) && point.y <= panelFrame.minY + ShelfGeometry.closeZone
         guard inZone, upAmount > 0 else { total = 0; return false }
         if time - lastTime > EdgeTrigger.scrollGap { total = 0 }
         total += upAmount
