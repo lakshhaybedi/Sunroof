@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4
+
+- **Permissions**: the Calendar, Reminders and Location dialogs no longer open hidden behind the shelf. Sunroof closes the shelf first, and widgets show your data as soon as you allow access.
+- **Music**: click the album art to open the player. Choose any music app to open in *Settings › Widgets › Music*.
+- **Quick Look**: Space opens and closes the preview, the arrow keys move to the next file while previewing, and Esc closes the preview before the shelf.
+
 ## 0.2.3
 
 - **Widgets look new**: each widget sits on the same Liquid Glass as the shelf and blurs what's behind it. Clicking into a widget no longer dims the shelf.
