@@ -19,9 +19,12 @@ measure() { # ms of GPU per second over 5 s
 
 echo "Keep the shelf CLOSED. Measuring for 5 s…"
 closed=$(measure)
-echo "Now OPEN the shelf and don't touch anything. Starting in 3 s…"
+echo "Now OPEN the shelf (you have 3 s) and don't touch anything for 10 s…"
 sleep 3
-opened=$(measure)
+first=$(measure)
+after=$(measure)
 echo
-echo "WindowServer GPU time — shelf closed: ${closed} ms/s, shelf open: ${opened} ms/s"
-echo "(1000 ms/s would be the GPU busy all the time.)"
+echo "WindowServer GPU time (ms per second; 1000 = GPU busy all the time):"
+echo "  shelf closed:             ${closed}"
+echo "  first 5 s after opening:  ${first}"
+echo "  next 5 s (shelf at rest): ${after}"
