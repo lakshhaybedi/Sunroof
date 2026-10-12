@@ -3,6 +3,21 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.0</title>
+      <pubDate>Mon, 12 Oct 2026 05:37:29 -0000</pubDate>
+      <sparkle:version>0.2.0</sparkle:version>
+      <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Widgets**: a band of widgets along the bottom of the shelf: **Calendar** (month view with an agenda), **Tasks** (Apple Reminders, or Sunroof&#x27;s own list kept in `Tasks.md`), **Music** (Apple Music and Spotify), **Weather** (Open-Meteo, a city you pick or your location) and **System Stats** (CPU, memory, battery, disk, network).
+- Drag widgets to rearrange them. Right-click a widget to resize or remove it, and use ＋ to add one. Drag the grip above the band to change how many rows it has. The layout is remembered per display.
+- Widgets only run while the shelf is open, and macOS only asks for a permission when a widget needs it.
+- Change widget settings, or turn widgets off, in *Settings › Widgets*.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.0/Sunroof-0.2.0.dmg" type="application/octet-stream" sparkle:edSignature="0n9n/nVgvIacEchuC0bCLowKGwDr9P4WcmbztZwN/rxBlML5qcPUJgsIzRkcPtT6KKxu2RnYWqLfgJ52EajZCA==" length="4757977" />
+    </item>
+    <item>
       <title>Sunroof 0.1.1</title>
       <pubDate>Mon, 12 Oct 2026 04:37:40 -0000</pubDate>
       <sparkle:version>0.1.1</sparkle:version>
