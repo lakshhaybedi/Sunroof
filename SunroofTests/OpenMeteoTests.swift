@@ -55,4 +55,27 @@ import Testing
         #expect(model.lastError != nil)
         #expect(WeatherModel(settings: s, defaults: d) { _ in Data() }.forecast?.current.temperature == 17.4) // cached on disk
     }
+
+    // Review I1: a cached forecast for another city is never shown for the current one.
+    @MainActor @Test func cacheIsPerCity() async {
+        let d = UserDefaults(suiteName: "wx-\(UUID())")!
+        let s = AppSettings(defaults: d)
+        s.weatherCity = WeatherCity(name: "London", latitude: 51.5, longitude: -0.1)
+        let london = WeatherModel(settings: s, defaults: d) { _ in Data(Self.fixture.utf8) }
+        await london.refresh(force: false)
+        #expect(london.forecast != nil)
+        s.weatherCity = WeatherCity(name: "Paris", latitude: 48.9, longitude: 2.35)
+        let paris = WeatherModel(settings: s, defaults: d) { _ in throw URLError(.notConnectedToInternet) }
+        #expect(paris.forecast == nil)
+        await paris.refresh(force: false) // throttle must not apply to a different city
+        #expect(paris.lastError != nil)
+    }
+
+    // Review I4: a new location fix only refetches when it actually moved.
+    @Test func locationMoveThreshold() {
+        let a = WeatherCity(name: "x", latitude: 38.72, longitude: -9.14)
+        #expect(!WeatherModel.movedFar(from: a, to: WeatherCity(name: "x", latitude: 38.73, longitude: -9.15)))
+        #expect(WeatherModel.movedFar(from: a, to: WeatherCity(name: "x", latitude: 41.15, longitude: -8.61)))
+        #expect(WeatherModel.movedFar(from: nil, to: a))
+    }
 }

@@ -33,8 +33,11 @@ struct WidgetBand: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(.leading, 8)
+                .onChange(of: columns, initial: true) { host.restartIfRunning(columns: columns) }
             }
         }
+        .onChange(of: host.settings.widgetRows) { host.restartIfRunning() }
+        .onChange(of: host.settings.showWidgets) { host.restartIfRunning() }
         .tint(host.settings.accent.color)
     }
 
@@ -88,6 +91,7 @@ struct WidgetBand: View {
                     }
                 }
                 Button("Widget Settings…") { host.openSettings() }
+                Button("Hide Widgets") { host.settings.showWidgets = false }
                 Divider()
                 Button("Remove Widget", role: .destructive) { host.layout.remove(kind) }
             }

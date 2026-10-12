@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct WeatherWidget: View {
@@ -6,7 +7,14 @@ struct WeatherWidget: View {
 
     var body: some View {
         Group {
-            if model.city == nil {
+            if model.locationDenied, model.settingsUseLocation {
+                VStack(spacing: 6) {
+                    AccessPrompt(symbol: "location.slash", text: "Location access is off", button: "Open Privacy Settings") {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices")!)
+                    }
+                    Button("Choose a City Instead") { model.chooseCityInstead() }.buttonStyle(.link).font(.caption)
+                }
+            } else if model.city == nil {
                 CityPicker(model: model)
             } else if let f = model.forecast {
                 forecast(f)

@@ -17,15 +17,24 @@ final class CalendarModel: WidgetModel {
     }
 
     private(set) var access: Access = .unknown
-    var month = Date.now { didSet { reload() } }
-    var selectedDay = Calendar.current.startOfDay(for: .now)
+    var month: Date { didSet { reload() } }
+    var selectedDay: Date
     private(set) var eventsByDay: [Date: [Event]] = [:]
 
     @ObservationIgnored let store = EKEventStore()
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private var observer: Any?
+    @ObservationIgnored private let now: () -> Date
+    /// The day `goToToday` last ran; a new day sends the widget back to today on the next open.
+    @ObservationIgnored private var today: Date
 
-    init(settings: AppSettings) { self.settings = settings }
+    init(settings: AppSettings, now: @escaping () -> Date = { .now }) {
+        self.settings = settings
+        self.now = now
+        month = now()
+        today = Calendar.current.startOfDay(for: now())
+        selectedDay = today
+    }
 
     var calendar: Calendar {
         var c = Calendar.current
@@ -38,13 +47,14 @@ final class CalendarModel: WidgetModel {
 
     /// The next `n` events from now.
     func upcoming(_ n: Int) -> [Event] {
-        let now = Date.now
+        let now = now()
         return eventsByDay.values.flatMap { $0 }.filter { $0.end > now }
             .reduce(into: [String: Event]()) { $0[$1.id] = $1 }.values
             .sorted { $0.start < $1.start }.prefix(n).map { $0 }
     }
 
     func start() {
+        if calendar.startOfDay(for: now()) != today { goToToday() }
         refreshAccess()
         guard observer == nil else { return }
         observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
@@ -69,8 +79,9 @@ final class CalendarModel: WidgetModel {
     func shiftMonth(_ delta: Int) { month = calendar.date(byAdding: .month, value: delta, to: month) ?? month }
 
     func goToToday() {
-        month = .now
-        selectedDay = calendar.startOfDay(for: .now)
+        today = calendar.startOfDay(for: now())
+        selectedDay = today
+        month = now()
     }
 
     private func refreshAccess() {

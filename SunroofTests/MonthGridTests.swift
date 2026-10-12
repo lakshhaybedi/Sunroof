@@ -34,4 +34,16 @@ import Testing
         #expect(MonthGrid.weekdayInitials(firstWeekday: 2, calendar: cal).first == "M")
         #expect(MonthGrid.weekdayInitials(firstWeekday: 1, calendar: cal).first == "S")
     }
+
+    // Review I8: after a day change, opening the shelf jumps back to today.
+    @MainActor @Test func calendarReturnsToTodayOnNewDay() {
+        let s = AppSettings(defaults: UserDefaults(suiteName: "c-\(UUID())")!)
+        var now = date(2026, 9, 30)
+        let m = CalendarModel(settings: s, now: { now })
+        m.shiftMonth(-2)
+        now = date(2026, 10, 1)
+        m.start(); m.stop()
+        #expect(cal.component(.month, from: m.month) == 10)
+        #expect(m.selectedDay == Calendar.current.startOfDay(for: now))
+    }
 }

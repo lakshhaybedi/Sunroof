@@ -64,8 +64,10 @@ final class SunroofTasksSource {
         store.update(SunroofTasks.filename, text: SunroofTasks.toggling(id, in: text))
     }
 
-    func add(_ title: String) {
-        store.ensureNote(SunroofTasks.filename, text: "Tasks")
+    /// False when `Tasks.md` exists but can't be read (it's left alone).
+    @discardableResult func add(_ title: String) -> Bool {
+        guard store.ensureNote(SunroofTasks.filename, text: "Tasks") else { return false }
         store.update(SunroofTasks.filename, text: SunroofTasks.adding(title, to: text))
+        return true
     }
 }

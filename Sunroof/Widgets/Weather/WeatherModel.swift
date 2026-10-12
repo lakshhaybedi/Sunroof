@@ -9,6 +9,7 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
     private(set) var updated: Date?
     private(set) var lastError: String?
     private(set) var loading = false
+    private(set) var locationDenied = false
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let defaults: UserDefaults
@@ -16,6 +17,8 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var location: CLLocationManager?
     @ObservationIgnored private var located: WeatherCity?
+    /// The place `forecast` is for (never show or throttle one city's weather for another).
+    @ObservationIgnored private var forecastCity: WeatherCity?
     static let interval: TimeInterval = 30 * 60
     private static let cacheKey = "widgets.weather.cache"
 
@@ -28,8 +31,8 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
         self.fetch = fetch
         super.init()
         if let data = defaults.data(forKey: Self.cacheKey), let c = try? JSONDecoder().decode(Cache.self, from: data) {
-            forecast = c.forecast
-            updated = c.updated
+            if settings.weatherUseLocation { located = c.city }
+            if c.city == city { (forecast, updated, forecastCity) = (c.forecast, c.updated, c.city) }
         }
     }
 
@@ -56,12 +59,14 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
 
     func refresh(force: Bool) async {
         guard let city else { return }
+        if forecastCity != city { (forecast, updated) = (nil, nil) }
         if !force, let updated, Date.now.timeIntervalSince(updated) < Self.interval, forecast != nil { return }
         loading = true
         defer { loading = false }
         do {
             let f = try OpenMeteo.decode(try await fetch(OpenMeteo.forecastURL(city)))
             forecast = f
+            forecastCity = city
             updated = .now
             lastError = nil
             if let data = try? JSONEncoder().encode(Cache(forecast: f, updated: .now, city: city)) {
@@ -87,6 +92,14 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
 
     // MARK: - Location ("Use my location")
 
+    var settingsUseLocation: Bool { settings.weatherUseLocation }
+
+    func chooseCityInstead() {
+        settings.weatherUseLocation = false
+        locationDenied = false
+        Task { await refresh(force: false) }
+    }
+
     func useMyLocation() {
         settings.weatherUseLocation = true
         requestLocation()
@@ -105,12 +118,34 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
         guard let l = locations.last else { return }
         let c = l.coordinate
         Task { @MainActor in
-            self.located = WeatherCity(name: "Current Location", latitude: c.latitude, longitude: c.longitude)
+            self.locationDenied = false
+            let here = WeatherCity(name: "Current Location", latitude: c.latitude, longitude: c.longitude)
+            guard Self.movedFar(from: self.located, to: here) else { await self.refresh(force: false); return }
+            self.located = here
             await self.refresh(force: true)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        Task { @MainActor in self.lastError = "Location unavailable" }
+        let denied = (error as? CLError)?.code == .denied
+        Task { @MainActor in
+            self.locationDenied = denied
+            self.lastError = "Location unavailable"
+        }
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            self.locationDenied = status == .denied || status == .restricted
+            if status == .authorizedAlways { self.location?.requestLocation() }
+        }
+    }
+
+    /// A new fix only refetches when it's more than 5 km from the last one (fixes jitter on every open).
+    nonisolated static func movedFar(from old: WeatherCity?, to new: WeatherCity) -> Bool {
+        guard let old else { return true }
+        return CLLocation(latitude: old.latitude, longitude: old.longitude)
+            .distance(from: CLLocation(latitude: new.latitude, longitude: new.longitude)) > 5_000
     }
 }

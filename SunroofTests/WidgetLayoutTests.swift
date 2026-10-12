@@ -58,4 +58,19 @@ import Testing
         #expect(AppSettings(defaults: d).widgetLayout(forDisplay: "B") == .default)
         #expect(s.widgetRows == 2 && s.showWidgets)
     }
+
+    // Review I6: nothing runs when the widget area is off; only placed widgets run.
+    @Test func hostRespectsShowWidgetsAndPacking() {
+        final class Spy: WidgetModel { var running = false; func start() { running = true }; func stop() { running = false } }
+        let s = AppSettings(defaults: UserDefaults(suiteName: "h-\(UUID())")!)
+        var spies: [WidgetKind: Spy] = [:]
+        let host = WidgetHost(settings: s) { k in let x = Spy(); spies[k] = x; return x }
+        s.showWidgets = false
+        host.start(columns: 10)
+        #expect(spies.values.allSatisfy { !$0.running })
+        s.showWidgets = true
+        host.start(columns: 4) // 4×2: calendar, weather, music fit; tasks and stats hidden
+        #expect(spies[.calendar]?.running == true)
+        #expect(spies[.stats]?.running != true)
+    }
 }

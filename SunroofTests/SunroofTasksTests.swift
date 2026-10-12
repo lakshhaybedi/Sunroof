@@ -42,4 +42,15 @@ import Testing
         await store.update("Tasks.md", text: "Tasks\n\n- [ ] One\n- [ ] Two from another Mac")
         #expect(await model.tasks.map(\.title) == ["One", "Two from another Mac"])
     }
+
+    // Review I7: an existing Tasks.md that isn't loaded (not UTF-8, evicted to iCloud) is never overwritten.
+    @MainActor @Test func unloadedTasksFileIsNeverOverwritten() throws {
+        let folder = tempDir().appendingPathComponent("Notes")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let bytes = Data([0x54, 0x61, 0x73, 0x6B, 0xFF, 0xFE]) // not UTF-8
+        try bytes.write(to: folder.appendingPathComponent("Tasks.md"))
+        let source = SunroofTasksSource(store: NoteStore(folder: folder))
+        #expect(!source.add("New"))
+        #expect(try Data(contentsOf: folder.appendingPathComponent("Tasks.md")) == bytes)
+    }
 }
