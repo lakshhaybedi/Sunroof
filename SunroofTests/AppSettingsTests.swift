@@ -118,4 +118,15 @@ import Testing
         s.resetWidgetLayouts()
         #expect(s.widgetLayout(forDisplay: "A") == .default)
     }
+
+    // System Stats: everything shows by default; hidden metrics persist; Small shows the first two ring metrics left.
+    @Test func statsMetricsChoice() {
+        let s = AppSettings(defaults: defaults)
+        #expect(s.hiddenStats.isEmpty)
+        s.hiddenStats = [StatsMetric.cpu.rawValue]
+        #expect(AppSettings(defaults: defaults).hiddenStats == ["cpu"])
+        #expect(StatsMetric.rings(hidden: []) == [.cpu, .memory])
+        #expect(StatsMetric.rings(hidden: ["cpu"]) == [.memory, .battery])
+        #expect(StatsMetric.shown(hidden: ["network", "disk"]) == [.cpu, .memory, .battery])
+    }
 }

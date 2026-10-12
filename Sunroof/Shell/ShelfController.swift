@@ -94,6 +94,16 @@ final class ShelfController {
         view.frame = tray.bounds
         view.autoresizingMask = [.width, .height]
         tray.addSubview(view)
+        // The pill above the widgets resizes the shelf (one handle, where people reach for it).
+        let grip = ResizeHandleView { [weak self] in self?.resize(by: $0, ended: $1) }
+        grip.translatesAutoresizingMaskIntoConstraints = false
+        tray.addSubview(grip)
+        NSLayoutConstraint.activate([
+            grip.topAnchor.constraint(equalTo: tray.topAnchor),
+            grip.leadingAnchor.constraint(equalTo: tray.leadingAnchor),
+            grip.trailingAnchor.constraint(equalTo: tray.trailingAnchor),
+            grip.heightAnchor.constraint(equalToConstant: 12),
+        ])
         updateTray()
     }
 
@@ -223,8 +233,14 @@ final class ShelfController {
         onHide.forEach { $0() }
     }
 
+    /// When a click outside last closed the shelf. The menu bar icon is drawn by the system, so clicking it
+    /// arrives as a click outside first; its toggle must not reopen what that same click just closed.
+    private var clickedAwayAt: TimeInterval = -.infinity
+
     func toggle(on screen: NSScreen) {
-        isVisible ? hide() : show(on: screen, focus: nil)
+        if isVisible { hide(); return }
+        guard ProcessInfo.processInfo.systemUptime - clickedAwayAt > 0.6 else { return }
+        show(on: screen, focus: nil)
     }
 
     // MARK: - Resizing
@@ -249,7 +265,10 @@ final class ShelfController {
     private func installMonitors() {
         removeMonitors()
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
-            MainActor.assumeIsolated { self?.hide() }
+            MainActor.assumeIsolated {
+                self?.clickedAwayAt = ProcessInfo.processInfo.systemUptime
+                self?.hide()
+            }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
             guard let self, let window = e.window, window === self.panel else { return e } // keys in Settings/onboarding aren't ours

@@ -14,7 +14,7 @@ struct WidgetsSettings: View {
         Form {
             Section("Widget area") {
                 Toggle("Show widgets at the bottom of the shelf", isOn: $settings.showWidgets)
-                Stepper("Rows: \(settings.widgetRows)", value: $settings.widgetRows, in: 1...4)
+                Stepper("Maximum rows: \(settings.widgetRows)", value: $settings.widgetRows, in: 1...4)
                 Button("Reset Widget Layout") { settings.resetWidgetLayouts() }
             }
             Section("Calendar") {
@@ -41,6 +41,16 @@ struct WidgetsSettings: View {
                     Text("Automatic (Reminders if allowed)").tag("")
                     Text("Sunroof (Tasks note)").tag(TasksModel.sunroofListID)
                     ForEach(reminderLists, id: \.calendarIdentifier) { Text($0.title).tag($0.calendarIdentifier) }
+                }
+            }
+            Section("System Stats") {
+                ForEach(StatsMetric.allCases, id: \.self) { m in
+                    Toggle(m.title, isOn: Binding(
+                        get: { !settings.hiddenStats.contains(m.rawValue) },
+                        set: { on in
+                            settings.hiddenStats.removeAll { $0 == m.rawValue }
+                            if !on { settings.hiddenStats.append(m.rawValue) }
+                        }))
                 }
             }
             Section("Music") {

@@ -175,7 +175,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func widgetView(_ kind: WidgetKind, _ size: WidgetSize) -> AnyView {
         let model = widgets.model(kind)
         switch kind {
-        case .stats: if let m = model as? StatsModel { return AnyView(StatsWidget(model: m, size: size)) }
+        case .stats: if let m = model as? StatsModel { return AnyView(StatsWidget(model: m, size: size).environment(settings)) }
         case .calendar: if let m = model as? CalendarModel { return AnyView(CalendarWidget(model: m, size: size).environment(settings)) }
         case .tasks: if let m = model as? TasksModel { return AnyView(TasksWidget(model: m, size: size)) }
         case .weather: if let m = model as? WeatherModel { return AnyView(WeatherWidget(model: m, size: size)) }

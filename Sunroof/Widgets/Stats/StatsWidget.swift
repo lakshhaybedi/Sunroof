@@ -1,36 +1,76 @@
 import SwiftUI
 
+/// What System Stats can show; each can be turned off in Settings › Widgets.
+enum StatsMetric: String, CaseIterable {
+    case cpu, memory, battery, disk, network
+
+    var title: String {
+        switch self {
+        case .cpu: "CPU"
+        case .memory: "Memory"
+        case .battery: "Battery"
+        case .disk: "Free disk space"
+        case .network: "Network"
+        }
+    }
+
+    static func shown(hidden: [String]) -> [StatsMetric] { allCases.filter { !hidden.contains($0.rawValue) } }
+
+    /// The Small size has room for two rings (CPU, memory, battery).
+    static func rings(hidden: [String]) -> [StatsMetric] {
+        Array(shown(hidden: hidden).filter { [.cpu, .memory, .battery].contains($0) }.prefix(2))
+    }
+}
+
 struct StatsWidget: View {
     let model: StatsModel
     let size: WidgetSize
+    @Environment(AppSettings.self) private var settings
 
     private var memory: Double { Double(model.memoryUsed) / Double(model.memoryTotal) }
 
     var body: some View {
+        let shown = StatsMetric.shown(hidden: settings.hiddenStats)
         if size == .small {
             HStack(spacing: 14) {
-                Ring(value: model.cpu, label: "CPU").tint(.green)
-                Ring(value: memory, label: "MEM").tint(.blue)
+                ForEach(StatsMetric.rings(hidden: settings.hiddenStats), id: \.self) { m in
+                    switch m {
+                    case .cpu: Ring(value: model.cpu, label: "CPU").tint(.green)
+                    case .memory: Ring(value: memory, label: "MEM").tint(.blue)
+                    default: Ring(value: model.battery?.level ?? 0, label: "BAT").tint(.yellow)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             VStack(alignment: .leading, spacing: 7) {
-                Bar(label: "CPU", value: model.cpu, detail: percent(model.cpu)).tint(.green)
-                Bar(label: "Memory", value: memory,
-                    detail: "\(ByteCountFormatter.string(fromByteCount: Int64(model.memoryUsed), countStyle: .memory)) of \(ByteCountFormatter.string(fromByteCount: Int64(model.memoryTotal), countStyle: .memory))").tint(.blue)
-                HStack {
-                    if let b = model.battery {
-                        Label(percent(b.level), systemImage: b.charging ? "battery.100.bolt" : batterySymbol(b.level))
-                    }
-                    Spacer()
-                    if let d = model.freeDisk {
-                        Label("\(ByteCountFormatter.string(fromByteCount: d, countStyle: .file)) free", systemImage: "internaldrive")
+                if shown.contains(.cpu) {
+                    Bar(label: "CPU", value: model.cpu, detail: percent(model.cpu)).tint(.green)
+                }
+                if shown.contains(.memory) {
+                    Bar(label: "Memory", value: memory,
+                        detail: "\(ByteCountFormatter.string(fromByteCount: Int64(model.memoryUsed), countStyle: .memory)) of \(ByteCountFormatter.string(fromByteCount: Int64(model.memoryTotal), countStyle: .memory))").tint(.blue)
+                }
+                if shown.contains(.battery) || shown.contains(.disk) {
+                    HStack {
+                        if shown.contains(.battery), let b = model.battery {
+                            Label(percent(b.level), systemImage: b.charging ? "battery.100.bolt" : batterySymbol(b.level))
+                        }
+                        Spacer()
+                        if shown.contains(.disk), let d = model.freeDisk {
+                            Label("\(ByteCountFormatter.string(fromByteCount: d, countStyle: .file)) free", systemImage: "internaldrive")
+                        }
                     }
                 }
-                HStack {
-                    Label(StatsSampler.formatRate(model.down), systemImage: "arrow.down")
-                    Spacer()
-                    Label(StatsSampler.formatRate(model.up), systemImage: "arrow.up")
+                if shown.contains(.network) {
+                    HStack {
+                        Label(StatsSampler.formatRate(model.down), systemImage: "arrow.down")
+                        Spacer()
+                        Label(StatsSampler.formatRate(model.up), systemImage: "arrow.up")
+                    }
+                }
+                if shown.isEmpty {
+                    Text("Choose what to show in Settings › Widgets").font(.caption).foregroundStyle(.secondary)
                 }
             }
             .font(.caption.monospacedDigit())

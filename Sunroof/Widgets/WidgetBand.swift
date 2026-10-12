@@ -6,13 +6,12 @@ struct WidgetBand: View {
     /// Builds each widget's content for its size (the per-widget views).
     let content: (WidgetKind, WidgetSize) -> AnyView
     @State private var showGallery = false
-    @State private var dragRows: Int?
     /// The tile being dragged to a new place, and how far it has moved.
     @State private var dragging: WidgetKind?
     @State private var dragOffset: CGSize = .zero
 
     private let cell = ShelfController.widgetCell
-    private var rows: Int { dragRows ?? max(1, min(host.settings.widgetRows, 4)) }
+    private var rows: Int { max(1, min(host.settings.widgetRows, 4)) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,23 +40,11 @@ struct WidgetBand: View {
 
     // MARK: - Pieces
 
-    /// Drag up/down to add or remove rows.
+    /// The shelf's resize pill (the drag itself is handled by the shelf window, above this view).
     private var rowsGrip: some View {
         Capsule().fill(Color.secondary.opacity(0.5))
             .frame(width: 36, height: 4)
             .frame(maxWidth: .infinity, minHeight: 10, maxHeight: 10)
-            .contentShape(Rectangle())
-            .onHover { inside in if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
-            .gesture(DragGesture(minimumDistance: 4)
-                .onChanged { v in
-                    let base = max(1, min(host.settings.widgetRows, 4))
-                    dragRows = max(1, min(4, base + Int((-v.translation.height / cell).rounded())))
-                }
-                .onEnded { _ in
-                    if let r = dragRows { host.settings.widgetRows = r }
-                    dragRows = nil
-                })
-            .help("Drag to add or remove widget rows")
     }
 
     private struct Grid { let width: CGFloat; let height: CGFloat }

@@ -64,6 +64,8 @@ final class AppSettings {
     /// 0 = follow the system; 1 = Sunday … 7 = Saturday.
     var calendarFirstWeekday: Int { didSet { save(calendarFirstWeekday, "calendarFirstWeekday") } }
     var hiddenCalendarIDs: [String] { didSet { save(hiddenCalendarIDs, "hiddenCalendarIDs") } }
+    /// System Stats metrics the user turned off (`StatsMetric` raw values); empty = show everything.
+    var hiddenStats: [String] { didSet { save(hiddenStats, "hiddenStats") } }
     var weatherCity: WeatherCity? { didSet { save((try? JSONEncoder().encode(weatherCity)) ?? Data(), "weatherCity") } }
     var weatherUseLocation: Bool { didSet { save(weatherUseLocation, "weatherUseLocation") } }
     /// nil = follow the system's measurement system.
@@ -132,6 +134,7 @@ final class AppSettings {
         showWidgets = v("showWidgets", true)
         calendarFirstWeekday = v("calendarFirstWeekday", 0)
         hiddenCalendarIDs = defaults.stringArray(forKey: "settings.hiddenCalendarIDs") ?? []
+        hiddenStats = defaults.stringArray(forKey: "settings.hiddenStats") ?? []
         calendarMediumShowsAgenda = v("calendarMediumShowsAgenda", false)
         taskListID = v("taskListID", "")
         musicPlayerBundleID = v("musicPlayerBundleID", "")
