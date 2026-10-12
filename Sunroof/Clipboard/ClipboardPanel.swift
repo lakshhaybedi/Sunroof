@@ -218,8 +218,9 @@ struct ClipboardPanel: View {
         if !showFavorites {
             var promoted = clip
             promoted.date = .now
-            store.ingest(promoted) // moves it to the top: it's the current clipboard now
+            withAnimation(.smooth(duration: 0.3)) { store.ingest(promoted) } // slides to the top: it's the current clipboard now
         }
+        Toast.show("Copied")
     }
 
     private func commitEdit(_ clip: Clip) {

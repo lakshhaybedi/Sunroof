@@ -20,8 +20,6 @@ struct ClipRow: View {
             gutter.frame(width: 28)
             preview
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onCopy)
             if !isFavoritesView && (hovering || isSelected) {
                 Button(action: onDelete) { Image(systemName: "xmark").font(.body.weight(.medium)) }
                     .buttonStyle(.hit).foregroundStyle(.secondary).help("Delete")
@@ -30,6 +28,8 @@ struct ClipRow: View {
         .padding(12)
         .frame(minHeight: expanded ? 88 : 56, alignment: .center)
         .background(isSelected || expanded ? Color.primary.opacity(0.08) : .clear)
+        .contentShape(Rectangle()) // the whole row copies (padding and gutter too); the star and × buttons win
+        .onTapGesture(perform: onCopy)
         .onHover { hovering = $0 }
         .onModifierKeysChanged(mask: .option) { _, new in revealing = new.contains(.option) }
     }

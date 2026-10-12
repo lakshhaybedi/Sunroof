@@ -67,6 +67,18 @@ import Testing
         #expect(m.items.map(\.name) == ["ext.txt"])
     }
 
+    // A folder we may read but not change (e.g. Desktop without Files & Folders access): copy instead of failing.
+    @Test func moveFallsBackToCopyWhenSourceIsLocked() throws {
+        let locked = tempDir()
+        let ext = touch("shot.png", in: locked)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: locked.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: locked.path) }
+        let m = model()
+        _ = try m.drop([ext], operation: .move)
+        #expect(m.items.map(\.name) == ["shot.png"])
+        #expect(FileManager.default.fileExists(atPath: ext.path))
+    }
+
     @Test func dropAlreadyHereIsNoOp() throws {
         let a = touch("a.txt")
         let m = model()

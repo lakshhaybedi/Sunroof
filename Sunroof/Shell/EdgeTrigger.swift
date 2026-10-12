@@ -26,6 +26,8 @@ enum EdgeDecision: Equatable {
 /// Pure value type; `EdgeTriggerMonitor` feeds it real events.
 struct EdgeTrigger {
     static let edgeTolerance: CGFloat = 2
+    /// Drags open the shelf anywhere in the menu bar band: at the very top edge macOS opens Mission Control instead.
+    static let dragZone: CGFloat = 24
     static let scrollThreshold: CGFloat = 6 // ponytail: calibration knob — tune on real trackpads/mice
     static let scrollGap: TimeInterval = 0.3   // pause that starts a new scroll gesture
     static let holdDelay: TimeInterval = 0.2   // modifier must be held this long with no mouse button
@@ -48,9 +50,9 @@ struct EdgeTrigger {
 
     /// Index of the screen whose top edge `p` is on, or nil. A top edge covered by
     /// another display stacked above it is not an edge — the cursor passes through.
-    func edgeScreen(at p: CGPoint) -> Int? {
+    func edgeScreen(at p: CGPoint, tolerance: CGFloat = edgeTolerance) -> Int? {
         guard let i = screens.firstIndex(where: {
-            p.x >= $0.minX && p.x < $0.maxX && p.y >= $0.maxY - Self.edgeTolerance && p.y <= $0.maxY + 1
+            p.x >= $0.minX && p.x < $0.maxX && p.y >= $0.maxY - tolerance && p.y <= $0.maxY + 1
         }) else { return nil }
         let above = CGPoint(x: p.x, y: screens[i].maxY + 1)
         return screens.contains { $0.contains(above) } ? nil : i
@@ -59,7 +61,7 @@ struct EdgeTrigger {
     mutating func handle(_ input: EdgeInput) -> EdgeDecision {
         switch input {
         case let .moved(p, time):
-            let wasAtEdge = lastPoint.flatMap(edgeScreen) != nil
+            let wasAtEdge = lastPoint.flatMap { edgeScreen(at: $0) } != nil
             lastPoint = p
             lastMoveTime = time
             if edgeScreen(at: p) == nil {
@@ -104,7 +106,7 @@ struct EdgeTrigger {
 
         case let .drag(p):
             lastPoint = p
-            guard let i = edgeScreen(at: p) else { return .none }
+            guard let i = edgeScreen(at: p, tolerance: Self.dragZone) else { return .none }
             reset()
             return .openFiles(screen: i)
         }
@@ -112,7 +114,7 @@ struct EdgeTrigger {
 
     /// Whether the monitor should poll modifier keys: Hold enabled, cursor at an edge, moved recently.
     func shouldPollModifiers(now: TimeInterval) -> Bool {
-        config.hold != nil && lastPoint.flatMap(edgeScreen) != nil && now - lastMoveTime <= Self.pollWindow
+        config.hold != nil && lastPoint.flatMap { edgeScreen(at: $0) } != nil && now - lastMoveTime <= Self.pollWindow
     }
 
     mutating func reset() {

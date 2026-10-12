@@ -279,22 +279,29 @@ struct FilesPanel: View {
         }
         switch key.key {
         case .leftArrow, .upArrow, .rightArrow, .downArrow:
-            guard !items.isEmpty else { return .handled }
-            // ponytail: linear prev/next, not 2-D grid navigation
-            let forward = key.key == .rightArrow || key.key == .downArrow
-            let next = forward ? min((index ?? -1) + 1, items.count - 1) : max((index ?? 1) - 1, 0)
-            selection = [items[next].url]
-            anchor = items[next].url
+            step(forward: key.key == .rightArrow || key.key == .downArrow)
             return .handled
         case .return:
             if selectedItems.count == 1, !settings.filesAsList { renaming = selectedItems[0].url }
             return .handled
         case .space:
-            QuickLook.show(selectedItems.map(\.url))
+            QuickLook.show(selectedItems.map(\.url)) { step(forward: $0) }
             return .handled
         default:
             return .ignored
         }
+    }
+
+    /// Selects the next/previous item and returns it.
+    @discardableResult private func step(forward: Bool) -> URL? {
+        let items = model.items
+        guard !items.isEmpty else { return nil }
+        let index = items.firstIndex { selection.contains($0.url) }
+        // ponytail: linear prev/next, not 2-D grid navigation
+        let next = forward ? min((index ?? -1) + 1, items.count - 1) : max((index ?? 1) - 1, 0)
+        selection = [items[next].url]
+        anchor = items[next].url
+        return items[next].url
     }
 
     private func chooseFolder() {

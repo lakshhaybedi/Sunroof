@@ -87,7 +87,7 @@ final class EdgeTriggerMonitor {
             self?.dragPasteboardCount = NSPasteboard(name: .drag).changeCount
         }
         add(.leftMouseDragged) { [weak self] _ in
-            guard let self, self.trigger.edgeScreen(at: NSEvent.mouseLocation) != nil,
+            guard let self, self.trigger.edgeScreen(at: NSEvent.mouseLocation, tolerance: EdgeTrigger.dragZone) != nil,
                   NSPasteboard(name: .drag).changeCount != self.dragPasteboardCount else { return }
             self.feed(.drag(NSEvent.mouseLocation)) // only real drag-and-drop sessions, not window drags
         }

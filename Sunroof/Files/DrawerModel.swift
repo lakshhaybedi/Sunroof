@@ -105,7 +105,14 @@ final class DrawerModel {
 
     @discardableResult func drop(_ urls: [URL], operation: FileDropOperation) throws -> [URL] {
         defer { reload() }
-        return try urls.map { try perform(operation, $0, into: current) }
+        return try urls.map { url in
+            do { return try perform(operation, url, into: current) } catch let e as CocoaError
+                where operation == .move && e.code == .fileWriteNoPermission {
+                // Can read but not remove it (e.g. Desktop without Files & Folders access): keep a copy instead.
+                Toast.show("Copied — Sunroof can't remove files from that folder")
+                return try perform(.copy, url, into: current)
+            }
+        }
     }
 
     func download(_ remote: URL) {

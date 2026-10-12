@@ -114,6 +114,14 @@ import Testing
         #expect(t.handle(.tick(10.6)) == .none)
     }
 
+    // A drag opens the shelf as soon as it reaches the menu bar, before the top edge where Mission Control takes over.
+    @Test func dragOpensInMenuBarZone() {
+        var t = trigger()
+        #expect(t.handle(.drag(CGPoint(x: 700, y: 982 - 20))) == .openFiles(screen: 0))
+        var u = trigger()
+        #expect(u.handle(.drag(CGPoint(x: 700, y: 982 - 40))) == .none)
+    }
+
     @Test func dragOpensFiles() {
         var t = trigger()
         #expect(t.handle(.drag(top)) == .openFiles(screen: 0))
