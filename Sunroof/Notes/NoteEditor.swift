@@ -249,11 +249,11 @@ struct FormatBar: View {
 
     private func button(_ symbol: String, _ help: String, _ action: @escaping (NoteTextView) -> Void) -> some View {
         Button { target().map(action) } label: { Image(systemName: symbol).frame(width: 22, height: 22) }
-            .buttonStyle(.plain).help(help)
+            .buttonStyle(HitButtonStyle(minSize: 26)).help(help)
     }
 
     private func text(_ label: String, _ action: @escaping (NoteTextView) -> Void) -> some View {
         Button { target().map(action) } label: { Text(label).font(.caption.bold()).frame(width: 22, height: 22) }
-            .buttonStyle(.plain)
+            .buttonStyle(HitButtonStyle(minSize: 26))
     }
 }

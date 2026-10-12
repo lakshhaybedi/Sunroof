@@ -31,8 +31,7 @@ final class StatusItemController: NSObject {
     private func install() {
         guard item == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "tray.and.arrow.down", accessibilityDescription: "Sunroof")
-        item.button?.image?.isTemplate = true
+        item.button?.image = MenuBarIcon.make()
         item.button?.target = self
         item.button?.action = #selector(clicked)
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])

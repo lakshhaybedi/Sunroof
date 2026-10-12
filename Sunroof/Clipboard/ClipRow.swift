@@ -24,7 +24,7 @@ struct ClipRow: View {
                 .onTapGesture(perform: onCopy)
             if !isFavoritesView && (hovering || isSelected) {
                 Button(action: onDelete) { Image(systemName: "xmark").font(.body.weight(.medium)) }
-                    .buttonStyle(.plain).foregroundStyle(.secondary).help("Delete")
+                    .buttonStyle(.hit).foregroundStyle(.secondary).help("Delete")
             }
         }
         .padding(12)
@@ -42,12 +42,12 @@ struct ClipRow: View {
                     .frame(width: 28, height: 28)
                     .background(Circle().fill(Color.primary.opacity(0.12)))
             }
-            .buttonStyle(.plain).help("Remove from Favorites")
+            .buttonStyle(.hit).help("Remove from Favorites")
         } else if (hovering || isSelected) && !clip.isSensitive { // concealed clips can't be starred
             Button(action: onToggleFavorite) {
                 Image(systemName: store.isFavorite(clip) ? "star.fill" : "star").font(.title3)
             }
-            .buttonStyle(.plain).foregroundStyle(.secondary).help("Favorite")
+            .buttonStyle(.hit).foregroundStyle(.secondary).help("Favorite")
         } else {
             AppIcon(bundleID: clip.source.bundleID)
         }

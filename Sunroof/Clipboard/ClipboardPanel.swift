@@ -142,7 +142,7 @@ struct ClipboardPanel: View {
                 Button { store.toggleFavorite(clip) } label: {
                     Image(systemName: store.isFavorite(clip) ? "star.fill" : "star").font(.title3)
                 }
-                .buttonStyle(.plain).foregroundStyle(.secondary).frame(width: 28)
+                .buttonStyle(.hit).foregroundStyle(.secondary).frame(width: 28)
                 TextField("", text: $draft, axis: .vertical)
                     .textFieldStyle(.plain)
                     .lineLimit(1...8)
@@ -152,7 +152,7 @@ struct ClipboardPanel: View {
                     .onChange(of: editing) { _, now in if !now { commitEdit(clip) } }
                     .onSubmit { editing = false }
                 Button { store.delete(clip.id) } label: { Image(systemName: "xmark") }
-                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .buttonStyle(.hit).foregroundStyle(.secondary)
             }
             .padding(12)
             .frame(minHeight: 88, alignment: .top)
@@ -281,10 +281,10 @@ struct HeaderButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .foregroundStyle(tint ?? .secondary)
-                .frame(width: 22, height: 22)
-                .background(RoundedRectangle(cornerRadius: 5).fill(active ? Color.primary.opacity(0.15) : .clear))
+                .frame(width: 26, height: 26)
+                .background(RoundedRectangle(cornerRadius: 6).fill(active ? Color.primary.opacity(0.15) : .clear))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hit)
         .help(help)
     }
 }

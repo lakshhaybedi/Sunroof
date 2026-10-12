@@ -85,9 +85,10 @@ struct FilesPanel: View {
             Toggle("Catch Screenshots", isOn: $settings.catchScreenshots)
         } label: {
             Image(systemName: "gearshape.fill").foregroundStyle(.secondary)
+                .frame(width: 28, height: 28).contentShape(Rectangle())
         }
         .menuStyle(.button)
-        .buttonStyle(.plain)
+        .buttonStyle(.hit)
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Options")
@@ -96,11 +97,11 @@ struct FilesPanel: View {
     private var breadcrumbBar: some View {
         HStack(spacing: 4) {
             Button { model.goUp() } label: { Image(systemName: "chevron.left") }
-                .buttonStyle(.plain).help("Back (⌘↑)")
+                .buttonStyle(.hit).help("Back (⌘↑)")
             ForEach(Array(model.breadcrumbs.enumerated()), id: \.offset) { i, url in
                 if i > 0 { Image(systemName: "chevron.compact.right").foregroundStyle(.tertiary) }
                 Button(i == 0 ? "Files" : url.lastPathComponent) { model.open(url) }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hit)
                     .foregroundStyle(i == model.breadcrumbs.count - 1 ? .primary : .secondary)
                     .lineLimit(1)
             }

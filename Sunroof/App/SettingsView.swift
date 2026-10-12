@@ -204,7 +204,7 @@ private struct Swatches: View {
                     }
                     .frame(width: 16, height: 16)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HitButtonStyle(minSize: 22))
                 .help(choice?.title ?? "None")
             }
         }

@@ -82,8 +82,9 @@ struct NotesPanel: View {
             Button("Checklist (⇧⌘L)") { controller.textView?.toggleBlock(.checklist) }
         } label: {
             Image(systemName: "textformat").foregroundStyle(.secondary)
+                .frame(width: 28, height: 28).contentShape(Rectangle())
         }
-        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+        .menuStyle(.button).buttonStyle(.hit).menuIndicator(.hidden).fixedSize()
         .disabled(showList)
         .help("Format")
     }
@@ -158,7 +159,7 @@ private struct NoteRow: View {
             Spacer(minLength: 0)
             if hovering {
                 Button(action: onDelete) { Image(systemName: "xmark") }
-                    .buttonStyle(.plain).foregroundStyle(.secondary).help("Move to Trash")
+                    .buttonStyle(.hit).foregroundStyle(.secondary).help("Move to Trash")
             }
         }
         .padding(12)
