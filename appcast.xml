@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Sunroof</title>
+    <item>
+      <title>Sunroof 0.1.1</title>
+      <pubDate>Mon, 12 Oct 2026 04:37:40 -0000</pubDate>
+      <sparkle:version>0.1.1</sparkle:version>
+      <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Automatic updates**: Sunroof checks GitHub daily and downloads and installs new versions by itself. *Settings › General › Updates* has the toggles and a **Check Now** button, and the menu bar menu has **Check for Updates…**. Until releases are signed, re-allow Accessibility (for ⏎-to-paste) after an update installs.
+- Easier clicking: every small button now responds across its whole area, not just the icon&#x27;s pixels.
+- A new menu bar icon: the roof with the sunroof open.
+- The 0.1.0 → 0.1.1 move is manual (0.1.0 can&#x27;t update itself); updates are automatic from here on.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.1.1/Sunroof-0.1.1.dmg" type="application/octet-stream" sparkle:edSignature="6/3dTytUewwGEnqqUzWbyd4TDdthKt0gMijp/eSPZyiLe0k+DKGWtVSqTRPdj/S+Ax/BCbWQlpum5Hd+lL1WAA==" length="3810472" />
+    </item>
+  </channel>
+</rss>
