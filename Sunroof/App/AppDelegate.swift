@@ -161,6 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .stats: StatsModel()
         case .calendar: CalendarModel(settings: settings)
         case .tasks: TasksModel(settings: settings, notes: noteStore)
+        case .weather: WeatherModel(settings: settings)
         default: nil
         }
     }
@@ -171,6 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .stats: if let m = model as? StatsModel { return AnyView(StatsWidget(model: m, size: size)) }
         case .calendar: if let m = model as? CalendarModel { return AnyView(CalendarWidget(model: m, size: size).environment(settings)) }
         case .tasks: if let m = model as? TasksModel { return AnyView(TasksWidget(model: m, size: size)) }
+        case .weather: if let m = model as? WeatherModel { return AnyView(WeatherWidget(model: m, size: size)) }
         default: break
         }
         return AnyView(WidgetPlaceholder(kind: kind))
