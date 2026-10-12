@@ -72,7 +72,7 @@ jobs:
           sign "$SPARKLE/Autoupdate"
           sign "$SPARKLE/Updater.app"
           sign "$APP/Contents/Frameworks/Sparkle.framework"
-          sign "$APP"
+          sign --entitlements Sunroof/Sunroof.entitlements "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
 
       - name: Package .dmg

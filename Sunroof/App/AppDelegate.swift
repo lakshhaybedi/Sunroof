@@ -143,6 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setUpWidgets() {
         widgets = WidgetHost(settings: settings) { [weak self] kind in self?.makeWidgetModel(kind) }
         let host = widgets!
+        host.openSettings = { [weak self] in self?.settingsWindow.show(tab: "Widgets") }
         let band = NSHostingView(rootView: WidgetBand(host: host) { [weak self] kind, size in
             self?.widgetView(kind, size) ?? AnyView(WidgetPlaceholder(kind: kind))
         })

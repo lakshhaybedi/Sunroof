@@ -73,6 +73,7 @@ final class AppSettings {
     var calendarMediumShowsAgenda: Bool { didSet { save(calendarMediumShowsAgenda, "calendarMediumShowsAgenda") } }
     func widgetLayout(forDisplay key: String) -> WidgetLayout { widgetLayouts[key] ?? .default }
     func setWidgetLayout(_ layout: WidgetLayout, forDisplay key: String) { widgetLayouts[key] = layout }
+    func resetWidgetLayouts() { widgetLayouts = [:] }
 
     /// Open sticky notes: filename → NSStringFromRect(frame).
     var stickies: [String: String] { didSet { save((try? JSONEncoder().encode(stickies)) ?? Data(), "stickies") } }

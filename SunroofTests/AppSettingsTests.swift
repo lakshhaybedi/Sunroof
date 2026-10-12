@@ -107,4 +107,15 @@ import Testing
         #expect(t.shelfTint == .purple)
         #expect(t.noteFont == .serif)
     }
+
+    @Test func widgetSettingsDefaultsAndReset() {
+        let s = AppSettings(defaults: defaults)
+        #expect(s.calendarFirstWeekday == 0)
+        #expect(s.taskListID == "")
+        #expect(!s.weatherUseLocation && s.weatherCity == nil && s.weatherFahrenheit == nil)
+        var l = WidgetLayout.default; l.remove(.music)
+        s.setWidgetLayout(l, forDisplay: "A")
+        s.resetWidgetLayouts()
+        #expect(s.widgetLayout(forDisplay: "A") == .default)
+    }
 }

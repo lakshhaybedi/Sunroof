@@ -13,6 +13,8 @@ final class WidgetHost {
     let settings: AppSettings
     /// The display the shelf is on (layouts are per display).
     var displayKey = "default"
+    /// Opens Settings › Widgets.
+    @ObservationIgnored var openSettings: () -> Void = {}
     @ObservationIgnored private var models: [WidgetKind: WidgetModel] = [:]
     @ObservationIgnored private let makeModel: (WidgetKind) -> WidgetModel?
     @ObservationIgnored private var running = false

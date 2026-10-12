@@ -87,6 +87,7 @@ struct WidgetBand: View {
                         }
                     }
                 }
+                Button("Widget Settings…") { host.openSettings() }
                 Divider()
                 Button("Remove Widget", role: .destructive) { host.layout.remove(kind) }
             }
