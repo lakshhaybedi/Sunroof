@@ -161,7 +161,6 @@ struct StatsWidget: View {
                 }
             }
             .frame(width: 52, height: 52)
-            .animation(.easeOut(duration: 0.4), value: value)
         }
     }
 
@@ -189,7 +188,6 @@ struct StatsWidget: View {
                 }
                 .frame(height: 5)
             }
-            .animation(.easeOut(duration: 0.4), value: value)
         }
     }
 }

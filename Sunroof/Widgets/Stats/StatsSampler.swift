@@ -152,32 +152,55 @@ final class StatsModel: WidgetModel {
         timer = nil
         lastTicks = nil
         lastNet = nil
+        ticks = 0 // next open reads temperatures and disk right away
     }
 
+    /// Every assignment redraws the widget (and makes macOS recomposite the blurred shelf), so values are rounded
+    /// to what's displayed and only set when they change.
     private func sample() {
+        func percent(_ v: Double) -> Double { (v * 100).rounded() / 100 }
         if let t = StatsSampler.cpuTicks() {
-            if let prev = lastTicks { cpu = StatsSampler.cpuUsage(prev: prev, now: t) }
+            if let prev = lastTicks { set(\.cpu, percent(StatsSampler.cpuUsage(prev: prev, now: t))) }
             lastTicks = t
         }
-        if let m = StatsSampler.memory() { memoryUsed = m.used; memoryTotal = max(m.total, 1) }
-        battery = StatsSampler.battery()
-        freeDisk = StatsSampler.freeDisk()
+        if let m = StatsSampler.memory() {
+            set(\.memoryUsed, m.used / 100_000_000 * 100_000_000) // shown to 0.1 GB
+            set(\.memoryTotal, max(m.total, 1))
+        }
+        let b = StatsSampler.battery().map { (level: percent($0.level), charging: $0.charging) }
+        if b?.level != battery?.level || b?.charging != battery?.charging { battery = b }
         let net = StatsSampler.networkBytes(), now = ProcessInfo.processInfo.systemUptime
         if let p = lastNet {
-            down = StatsSampler.rate(bytes: net.rx, prevBytes: p.rx, interval: now - p.at)
-            up = StatsSampler.rate(bytes: net.tx, prevBytes: p.tx, interval: now - p.at)
+            let d = StatsSampler.rate(bytes: net.rx, prevBytes: p.rx, interval: now - p.at)
+            let u = StatsSampler.rate(bytes: net.tx, prevBytes: p.tx, interval: now - p.at)
+            if StatsSampler.formatRate(d) != StatsSampler.formatRate(down) { down = d }
+            if StatsSampler.formatRate(u) != StatsSampler.formatRate(up) { up = u }
         }
         lastNet = (net.rx, net.tx, now)
-        gpu = StatsSampler.gpuUsage()
-        if ticks % 3 == 0 { readTemperatures() } // temperatures change slowly
+        let g = StatsSampler.gpuUsage().map(percent)
+        if g != gpu { gpu = g }
+        if ticks % 3 == 0 { readSlowValues(disk: ticks % 60 == 0) } // temperatures and disk change slowly
         ticks += 1
     }
 
-    private func readTemperatures() {
+    private func set<T: Equatable>(_ key: ReferenceWritableKeyPath<StatsModel, T>, _ value: T) {
+        if self[keyPath: key] != value { self[keyPath: key] = value }
+    }
+
+    /// Off the main thread: the sensors, and free disk space (asking macOS what it could purge is slow).
+    private func readSlowValues(disk: Bool) {
         Self.sensorQueue.async { [weak self] in
             if Self.reader == nil { Self.reader = TemperatureReader() }
-            let t = Self.reader?.read() ?? Temperatures()
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.temperatures = t } }
+            let raw = Self.reader?.read() ?? Temperatures()
+            let t = Temperatures(chip: raw.chip?.rounded(), gpu: raw.gpu?.rounded(), ssd: raw.ssd?.rounded(), battery: raw.battery?.rounded())
+            let d = disk ? StatsSampler.freeDisk() : nil
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if t != self.temperatures { self.temperatures = t }
+                    if let d, d / 1_000_000_000 != (self.freeDisk ?? -1) / 1_000_000_000 { self.freeDisk = d }
+                }
+            }
         }
     }
 }
