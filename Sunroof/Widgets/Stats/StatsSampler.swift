@@ -87,6 +87,26 @@ enum StatsSampler {
     }
 }
 
+extension StatsSampler {
+    /// GPU busy share 0…1 from the graphics driver's public statistics (nil if not reported).
+    static func gpuUsage() -> Double? {
+        var it: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &it) == KERN_SUCCESS else { return nil }
+        defer { IOObjectRelease(it) }
+        var best: Double?
+        var s = IOIteratorNext(it)
+        while s != 0 {
+            if let stats = IORegistryEntryCreateCFProperty(s, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? [String: Any], let u = stats["Device Utilization %"] as? NSNumber {
+                best = max(best ?? 0, u.doubleValue / 100)
+            }
+            IOObjectRelease(s)
+            s = IOIteratorNext(it)
+        }
+        return best
+    }
+}
+
 /// Live stats, sampled once a second only while the shelf is open.
 @MainActor @Observable
 final class StatsModel: WidgetModel {
@@ -97,16 +117,24 @@ final class StatsModel: WidgetModel {
     private(set) var freeDisk: Int64?
     private(set) var down: Double = 0
     private(set) var up: Double = 0
+    private(set) var gpu: Double?
+    private(set) var temperatures = Temperatures()
 
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var lastTicks: CPUTicks?
     @ObservationIgnored private var lastNet: (rx: UInt64, tx: UInt64, at: TimeInterval)?
+    @ObservationIgnored private var ticks = 0
+    /// Sensors are read off the main thread (76 of them on an M5 Pro) so scrolling never waits on them.
+    private static let sensorQueue = DispatchQueue(label: "sunroof.stats.sensors", qos: .utility)
+    private nonisolated(unsafe) static var reader: TemperatureReader?
 
     #if DEBUG
     /// Fixed readings for screenshots and previews.
-    func usePreview(cpu: Double, memory: (used: UInt64, total: UInt64), battery: (Double, Bool), freeDisk: Int64, down: Double, up: Double) {
+    func usePreview(cpu: Double, memory: (used: UInt64, total: UInt64), battery: (Double, Bool), freeDisk: Int64, down: Double, up: Double,
+                    gpu: Double? = nil, temperatures: Temperatures = Temperatures()) {
         (self.cpu, memoryUsed, memoryTotal, self.battery, self.freeDisk, self.down, self.up) =
             (cpu, memory.used, memory.total, battery, freeDisk, down, up)
+        (self.gpu, self.temperatures) = (gpu, temperatures)
     }
     #endif
 
@@ -140,5 +168,16 @@ final class StatsModel: WidgetModel {
             up = StatsSampler.rate(bytes: net.tx, prevBytes: p.tx, interval: now - p.at)
         }
         lastNet = (net.rx, net.tx, now)
+        gpu = StatsSampler.gpuUsage()
+        if ticks % 3 == 0 { readTemperatures() } // temperatures change slowly
+        ticks += 1
+    }
+
+    private func readTemperatures() {
+        Self.sensorQueue.async { [weak self] in
+            if Self.reader == nil { Self.reader = TemperatureReader() }
+            let t = Self.reader?.read() ?? Temperatures()
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.temperatures = t } }
+        }
     }
 }

@@ -38,8 +38,9 @@ import Testing
         #expect(l.items.first?.kind == .stats)
         l.resize(.stats, to: .medium)
         #expect(l.items.first?.size == .medium)
-        l.resize(.stats, to: .large) // not allowed for stats
-        #expect(l.items.first?.size == .medium)
+        l.resize(.music, to: .large) // not allowed for music
+        #expect(l.items.first { $0.kind == .music }?.size == .medium)
+        #expect(WidgetKind.stats.allowedSizes.contains(.large))
         l.remove(.music)
         #expect(!l.items.map(\.kind).contains(.music))
         #expect(l.available == [.music])

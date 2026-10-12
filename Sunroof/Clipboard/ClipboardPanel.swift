@@ -138,14 +138,14 @@ struct ClipboardPanel: View {
     /// The current clipboard, expanded; text is editable in place.
     @ViewBuilder private func currentRow(_ clip: Clip) -> some View {
         if clip.kind == .text || clip.kind == .richText {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 Button { store.toggleFavorite(clip) } label: {
                     Image(systemName: store.isFavorite(clip) ? "star.fill" : "star").font(.title3)
                 }
                 .buttonStyle(.hit).foregroundStyle(.secondary).frame(width: 28)
                 TextField("", text: $draft, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .lineLimit(1...8)
+                    .lineLimit(1...2)
                     .focused($editing)
                     .onAppear { draft = clip.text ?? "" }
                     .onChange(of: clip.id) { _, _ in draft = store.history.first?.text ?? "" }
@@ -154,8 +154,8 @@ struct ClipboardPanel: View {
                 Button { store.delete(clip.id) } label: { Image(systemName: "xmark") }
                     .buttonStyle(.hit).foregroundStyle(.secondary)
             }
-            .padding(12)
-            .frame(minHeight: 88, alignment: .top)
+            .padding(.horizontal, 12)
+            .frame(height: ClipRow.height, alignment: .center)
             .background(Color.primary.opacity(0.08))
             .id(clip.id)
             .contextMenu { menu(clip) }

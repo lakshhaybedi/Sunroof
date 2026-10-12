@@ -126,7 +126,7 @@ import Testing
         s.hiddenStats = [StatsMetric.cpu.rawValue]
         #expect(AppSettings(defaults: defaults).hiddenStats == ["cpu"])
         #expect(StatsMetric.rings(hidden: []) == [.cpu, .memory])
-        #expect(StatsMetric.rings(hidden: ["cpu"]) == [.memory, .battery])
-        #expect(StatsMetric.shown(hidden: ["network", "disk"]) == [.cpu, .memory, .battery])
+        #expect(StatsMetric.rings(hidden: ["cpu"]) == [.memory, .gpu])
+        #expect(StatsMetric.shown(hidden: ["network", "disk", "gpu", "temperature"]) == [.cpu, .memory, .battery])
     }
 }

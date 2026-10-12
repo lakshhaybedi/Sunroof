@@ -41,7 +41,8 @@ enum WidgetKind: String, Codable, CaseIterable {
     var allowedSizes: [WidgetSize] {
         switch self {
         case .calendar, .tasks: [.medium, .large]
-        case .music, .stats: [.small, .medium]
+        case .music: [.small, .medium]
+        case .stats: [.small, .medium, .large]
         case .weather: [.small, .medium, .large]
         }
     }

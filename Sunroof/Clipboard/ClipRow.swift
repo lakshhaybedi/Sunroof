@@ -15,6 +15,9 @@ struct ClipRow: View {
     @State private var hovering = false
     @State private var revealing = false
 
+    /// Every row is the same height; content is left-aligned and vertically centred.
+    static let height: CGFloat = 64
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             gutter.frame(width: 28)
@@ -25,8 +28,8 @@ struct ClipRow: View {
                     .buttonStyle(.hit).foregroundStyle(.secondary).help("Delete")
             }
         }
-        .padding(12)
-        .frame(minHeight: expanded ? 88 : 56, alignment: .center)
+        .padding(.horizontal, 12)
+        .frame(height: Self.height, alignment: .center)
         .background(isSelected || expanded ? Color.primary.opacity(0.08) : .clear)
         .contentShape(Rectangle()) // the whole row copies (padding and gutter too); the star and × buttons win
         .onTapGesture(perform: onCopy)
@@ -59,14 +62,14 @@ struct ClipRow: View {
         } else {
             switch clip.kind {
             case .text, .richText:
-                Text(clip.text ?? "").lineLimit(expanded ? 8 : 4)
+                Text(clip.text ?? "").lineLimit(2).truncationMode(.tail)
             case .url:
-                Text(underlined(clip.text ?? "")).lineLimit(4)
+                Text(underlined(clip.text ?? "")).lineLimit(2).truncationMode(.middle)
             case .image:
                 if let url = store.imageURL(for: clip),
                    let img = ThumbnailCache.shared.thumbnail(for: url, maxPixelSize: 320) {
                     Image(decorative: img, scale: 2).resizable().scaledToFit()
-                        .frame(maxHeight: 120, alignment: .leading)
+                        .frame(maxHeight: Self.height - 16, alignment: .leading)
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                 } else {
                     Label("Image", systemImage: "photo").foregroundStyle(.secondary)
@@ -76,7 +79,7 @@ struct ClipRow: View {
                     if let first = clip.fileURLs?.first {
                         Image(nsImage: NSWorkspace.shared.icon(forFile: first.path)).resizable().frame(width: 32, height: 32)
                     }
-                    Text(clip.text ?? "").lineLimit(4)
+                    Text(clip.text ?? "").lineLimit(2)
                 }
             case .color:
                 HStack(spacing: 8) {
