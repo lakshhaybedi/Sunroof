@@ -259,7 +259,7 @@ struct ClipboardPanel: View {
             if let selected, !showFavorites { store.delete(selected.id) }
             return .handled
         case .space:
-            if let selected {
+            if QuickLook.isVisible { QuickLook.close() } else if let selected {
                 if let url = store.imageURL(for: selected) { QuickLook.show([url]) }
                 else if let urls = selected.fileURLs { QuickLook.show(urls) }
             }

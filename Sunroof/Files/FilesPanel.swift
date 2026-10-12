@@ -279,13 +279,13 @@ struct FilesPanel: View {
         }
         switch key.key {
         case .leftArrow, .upArrow, .rightArrow, .downArrow:
-            step(forward: key.key == .rightArrow || key.key == .downArrow)
+            if let url = step(forward: key.key == .rightArrow || key.key == .downArrow) { QuickLook.follow(url) }
             return .handled
         case .return:
             if selectedItems.count == 1, !settings.filesAsList { renaming = selectedItems[0].url }
             return .handled
         case .space:
-            QuickLook.show(selectedItems.map(\.url)) { step(forward: $0) }
+            QuickLook.toggle(selectedItems.map(\.url)) { step(forward: $0) }
             return .handled
         default:
             return .ignored

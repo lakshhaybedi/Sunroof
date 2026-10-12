@@ -100,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AnyView(ClipboardPanel(store: store, settings: settings, paster: paster, notes: self?.noteStore))
             }
         }
-        shelf.onHide.append { ThumbnailCache.shared.purge() }
+        shelf.onHide.append { ThumbnailCache.shared.purge(); QuickLook.close() }
     }
 
     private func setUpFiles() {
@@ -196,6 +196,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         host.isHidden = true
         shelf.setOverlay(host)
         shelf.onGlobalSearch = { [weak self] in self?.setSearchVisible(!(self?.search.isVisible ?? true)) }
+        shelf.escapeHandlers.append { // Esc closes an open preview before the shelf
+            guard QuickLook.isVisible else { return false }
+            QuickLook.close()
+            return true
+        }
         shelf.escapeHandlers.append { [weak self] in
             guard let self, self.search.isVisible else { return false }
             self.setSearchVisible(false)

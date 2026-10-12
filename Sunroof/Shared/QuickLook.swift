@@ -33,7 +33,10 @@ enum QuickLook {
 
     private static let source = Source()
 
-    /// `onStep` lets ←/→/↑/↓ move through the caller's items while a single file is previewed.
+    static var isVisible: Bool { QLPreviewPanel.sharedPreviewPanelExists() && QLPreviewPanel.shared().isVisible }
+
+    /// Shows the preview *without* taking the keyboard: the shelf keeps Space (close) and the arrows (next file).
+    /// `onStep` serves the same keys if the user clicks into the preview and it becomes key.
     static func show(_ urls: [URL], onStep: (@MainActor (Bool) -> URL?)? = nil) {
         guard !urls.isEmpty, let panel = QLPreviewPanel.shared() else { return }
         source.urls = urls
@@ -41,9 +44,25 @@ enum QuickLook {
         panel.dataSource = source
         panel.delegate = source
         panel.reloadData()
-        panel.makeKeyAndOrderFront(nil)
         // Above the shelf (which sits at .statusBar) — otherwise the preview opens behind it.
         panel.level = NSWindow.Level(NSWindow.Level.statusBar.rawValue + 1)
         panel.orderFrontRegardless()
+    }
+
+    /// Space: open the preview, or close it if it's open (like Finder).
+    static func toggle(_ urls: [URL], onStep: (@MainActor (Bool) -> URL?)? = nil) {
+        if isVisible { close() } else { show(urls, onStep: onStep) }
+    }
+
+    static func close() {
+        guard QLPreviewPanel.sharedPreviewPanelExists() else { return }
+        QLPreviewPanel.shared().orderOut(nil)
+    }
+
+    /// Moves an open preview to `url` (the selection changed); no-op when closed.
+    static func follow(_ url: URL) {
+        guard isVisible else { return }
+        source.urls = [url]
+        QLPreviewPanel.shared().reloadData()
     }
 }
