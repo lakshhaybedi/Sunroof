@@ -58,12 +58,7 @@ final class TasksModel: WidgetModel {
     }
 
     func requestRemindersAccess() {
-        askMacOS { [self] in
-            _ = try? await store.requestFullAccessToReminders()
-            store.reset()
-            refreshAccess()
-            reload()
-        }
+        requestEventKitAccess(.reminder, store: store) { [self] in refreshAccess(); reload() }
     }
 
     func toggle(_ task: TaskItem) {

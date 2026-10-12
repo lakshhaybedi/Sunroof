@@ -97,10 +97,14 @@ final class ShelfController {
         updateTray()
     }
 
+    /// Rows the widgets fill (reported by the band); the strip is never taller than that.
+    var widgetRowsInUse = 4 { didSet { if widgetRowsInUse != oldValue { updateTray() } } }
+
     /// Height of the widget strip (0 when widgets are off).
     private var wantedTrayHeight: CGFloat {
         guard settings.showWidgets, !tray.subviews.isEmpty else { return 0 }
-        return CGFloat(max(1, min(settings.widgetRows, 4))) * Self.widgetCell + 22 // grip + breathing room
+        let rows = min(max(1, min(settings.widgetRows, 4)), max(1, widgetRowsInUse))
+        return CGFloat(rows) * Self.widgetCell + 22 // grip + breathing room
     }
 
     /// The shelf part of the window (the window also holds the widget strip below it).

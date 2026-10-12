@@ -31,6 +31,7 @@ final class CalendarModel: WidgetModel {
     init(settings: AppSettings, now: @escaping () -> Date = { .now }) {
         self.settings = settings
         self.now = now
+        defer { refreshAccess() } // show the real state (e.g. "access is off") before the first start()
         month = now()
         today = Calendar.current.startOfDay(for: now())
         selectedDay = today
@@ -69,12 +70,7 @@ final class CalendarModel: WidgetModel {
     }
 
     func requestAccess() {
-        askMacOS { [self] in
-            _ = try? await store.requestFullAccessToEvents()
-            store.reset() // a store made before access was granted sees no calendars until reset
-            refreshAccess()
-            reload()
-        }
+        requestEventKitAccess(.event, store: store) { [self] in refreshAccess(); reload() }
     }
 
     func shiftMonth(_ delta: Int) { month = calendar.date(byAdding: .month, value: delta, to: month) ?? month }

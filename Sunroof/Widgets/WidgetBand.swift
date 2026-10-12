@@ -31,6 +31,7 @@ struct WidgetBand: View {
                 .padding(.leading, 8)
                 .animation(.smooth(duration: 0.25), value: host.layout)
                 .onChange(of: columns, initial: true) { host.restartIfRunning(columns: columns) }
+                .onChange(of: rowsInUse(columns: columns, packed: packed), initial: true) { _, n in host.onRowsInUse(n) }
             }
         }
         .onChange(of: host.settings.widgetRows) { host.restartIfRunning() }
@@ -122,6 +123,13 @@ struct WidgetBand: View {
         .offset(x: spot.map { CGFloat($0.0) * grid.width } ?? CGFloat(columns) * grid.width - 36,
                 y: spot.map { CGFloat($0.1) * cell } ?? 0)
         .opacity(host.layout.available.isEmpty && spot == nil ? 0 : 1)
+    }
+
+    /// The lowest row anything sits in (widgets or the ＋), so the strip has no empty rows below.
+    private func rowsInUse(columns: Int, packed: (placed: [WidgetPlacement], hidden: [WidgetItem])) -> Int {
+        let bottom = packed.placed.map { $0.y + $0.item.size.span.h }.max() ?? 1
+        let plus = firstFreeCell(columns: columns, placed: packed.placed).map { $0.1 + 1 } ?? 1
+        return max(1, bottom, plus)
     }
 
     private func firstFreeCell(columns: Int, placed: [WidgetPlacement]) -> (Int, Int)? {

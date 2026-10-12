@@ -44,4 +44,22 @@ import Testing
         let messy = "Trip\n\nPACKING:\n• socks\n  ☐ charger\n1) passport\n4) visa\nHotel: Ritz\n\n\n\nTODO\n✓ book"
         #expect(clean(clean(messy)) == clean(messy))
     }
+
+    // "Name - text" labels (meeting notes) get the name in bold, like "Label: value".
+    @Test func dashLabelsBecomeBold() {
+        #expect(clean("T\nMarc - How long is it going to take?\nSere – Does the money go to artisans?")
+                == "T\n**Marc** - How long is it going to take?\n**Sere** – Does the money go to artisans?")
+        #expect(clean("T\nWell-known fact here") == "T\nWell-known fact here")
+        #expect(clean("T\nThis is a sentence - with a dash in it") == "T\nThis is a sentence - with a dash in it")
+    }
+
+    // A long first line is a paragraph, not a title: clean it like the rest.
+    @Test func longFirstLineIsBody() {
+        let first = "Marc - How long is it going to take for the whole thing to complete? Don't lose the scope."
+        #expect(clean(first + "\nmore") == "**Marc** - How long is it going to take for the whole thing to complete? Don't lose the scope.\nmore")
+    }
+
+    @Test func dividerLines() {
+        #expect(clean("T\n——————————\n___\n---") == "T\n---\n---\n---")
+    }
 }
