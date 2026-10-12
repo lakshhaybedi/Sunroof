@@ -21,7 +21,7 @@ final class SettingsWindowController {
 
     private var pages: [Page] {
         [
-            Page(title: "General", symbol: "switch.2", height: 420, view: AnyView(GeneralSettings(updater: updater))),
+            Page(title: "General", symbol: "switch.2", height: 560, view: AnyView(GeneralSettings(updater: updater))),
             Page(title: "Files", symbol: "folder", height: 150, view: AnyView(FilesSettings())),
             Page(title: "Notes", symbol: "note.text", height: 190, view: AnyView(NotesSettings())),
             Page(title: "Clipboard", symbol: "clipboard", height: 480, view: AnyView(ClipboardSettings().padding(20))),
@@ -69,6 +69,7 @@ private struct GeneralSettings: View {
     var updater: SPUUpdater?
     @Environment(AppSettings.self) private var settings
     @State private var autoUpdates = true
+    @State private var autoInstall = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
@@ -112,10 +113,24 @@ private struct GeneralSettings: View {
                 KeyboardShortcuts.Recorder("or just press", name: .togglePanel)
             }
             Toggle("Show menu bar icon", isOn: $settings.showMenuBarIcon)
-            if let updater {
-                Toggle("Automatically check for updates", isOn: $autoUpdates)
-                    .onAppear { autoUpdates = updater.automaticallyChecksForUpdates }
-                    .onChange(of: autoUpdates) { _, on in updater.automaticallyChecksForUpdates = on }
+            Section("Updates") {
+                if let updater {
+                    Toggle("Automatically check for updates", isOn: $autoUpdates)
+                        .onAppear { autoUpdates = updater.automaticallyChecksForUpdates }
+                        .onChange(of: autoUpdates) { _, on in updater.automaticallyChecksForUpdates = on }
+                    Toggle("Automatically download and install updates", isOn: $autoInstall)
+                        .disabled(!autoUpdates)
+                        .onAppear { autoInstall = updater.automaticallyDownloadsUpdates }
+                        .onChange(of: autoInstall) { _, on in updater.automaticallyDownloadsUpdates = on }
+                }
+                LabeledContent("Sunroof \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")") {
+                    Button("Check Now") {
+                        guard let updater else { Toast.show("Updates aren't set up for this build."); return }
+                        NSApp.activate()
+                        updater.checkForUpdates()
+                    }
+                    .disabled(updater == nil)
+                }
             }
         }
         .formStyle(.grouped)

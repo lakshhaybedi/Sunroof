@@ -16,6 +16,7 @@
 	<key>SUFeedURL</key><string>https://lakshhaybedi.github.io/Sunroof/appcast.xml</string>
 	<key>SUPublicEDKey</key><string>$(SPARKLE_PUBLIC_KEY)</string>
 	<key>SUEnableAutomaticChecks</key><true/>
+	<key>SUAutomaticallyUpdate</key><true/>
 	<key>SUScheduledCheckInterval</key><integer>86400</integer>
 	<key>UTExportedTypeDeclarations</key>
 	<array>

@@ -22,9 +22,7 @@ Local builds are signed ad-hoc and can't auto-update. macOS blocks the first lau
 3. **App Store Connect API key** (for notarization) — App Store Connect › Users and Access › Integrations › App Store Connect API › + (role *Developer*). Download the `.p8` once.
    - `ASC_KEY_ID`, `ASC_ISSUER_ID` (shown on that page)
    - `ASC_KEY_P8` = the full contents of the `.p8` file
-4. **Sparkle update key** — download the Sparkle release matching `Package.resolved`, then run `./bin/generate_keys`. It stores the private key in your login keychain and prints the public key.
-   - Put the **public** key in `project.yml` → `SPARKLE_PUBLIC_KEY`, commit.
-   - `./bin/generate_keys -x private-key.txt` → `SPARKLE_ED_PRIVATE_KEY` = its contents. Delete the file afterwards.
+4. **Sparkle update key** — already set up (see *Auto-updates* below).
 5. Add the secrets above in GitHub › the repo › Settings › Secrets and variables › Actions.
 6. **GitHub Pages** — after the first release creates the `gh-pages` branch: Settings › Pages › Deploy from branch › `gh-pages` / root. The app reads `https://lakshhaybedi.github.io/Sunroof/appcast.xml`.
 
@@ -34,4 +32,6 @@ Local builds are signed ad-hoc and can't auto-update. macOS blocks the first lau
 2. Add a `## X.Y.Z` section at the top of `CHANGELOG.md`.
 3. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`.
 
-The **Release** workflow tests, builds a Universal app, signs it with your Developer ID (hardened runtime), notarizes and staples the `.dmg`, publishes a GitHub Release with the changelog section, and adds the update to the appcast. Any step whose secrets are missing is skipped with a warning; without signing secrets you get an unsigned `.dmg`. Updates are only added to the appcast for signed **and** notarized builds.
+The **Release** workflow tests, builds a Universal app, signs it with your Developer ID (hardened runtime), notarizes and staples the `.dmg`, publishes a GitHub Release with the changelog section, and adds the update to the appcast. Any step whose secrets are missing is skipped with a warning; without signing secrets you get an unsigned `.dmg`.
+
+**Auto-updates** are already on: the update key's public half is in `project.yml` and the private half is the `SPARKLE_ED_PRIVATE_KEY` secret (a backup lives in `~/.sunroof/sparkle_ed_private_key` on the maintainer's Mac — keep it safe; losing it means installed copies can't verify new updates). Every release adds itself to the appcast on GitHub Pages and installed copies download and install it automatically. Until releases are signed with a Developer ID, each update has a new ad-hoc signature, so users re-allow Accessibility after it installs. A signed-but-not-notarized release is never offered as an update.

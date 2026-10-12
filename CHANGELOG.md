@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- **Automatic updates**: Sunroof checks GitHub daily and downloads and installs new versions by itself. *Settings › General › Updates* has the toggles and a **Check Now** button, and the menu bar menu has **Check for Updates…**. Until releases are signed, re-allow Accessibility (for ⏎-to-paste) after an update installs.
+- Easier clicking: every small button now responds across its whole area, not just the icon's pixels.
+- A new menu bar icon: the roof with the sunroof open.
+- The 0.1.0 → 0.1.1 move is manual (0.1.0 can't update itself); updates are automatic from here on.
+
 ## 0.1.0
 
 First release.

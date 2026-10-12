@@ -26,4 +26,10 @@ import Testing
     @Test func buildNumberMatchesVersion() {
         #expect(info("CFBundleVersion") as? String == info("CFBundleShortVersionString") as? String)
     }
+
+    // Auto-updates: the build carries the EdDSA public key and installs updates automatically.
+    @Test func updatesConfigured() {
+        #expect((info("SUPublicEDKey") as? String)?.count == 44)
+        #expect(info("SUAutomaticallyUpdate") as? Bool == true)
+    }
 }

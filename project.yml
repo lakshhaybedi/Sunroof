@@ -40,12 +40,12 @@ targets:
         ENABLE_APP_SANDBOX: NO
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
-        MARKETING_VERSION: 0.1.0
+        MARKETING_VERSION: 0.1.1
         CURRENT_PROJECT_VERSION: $(MARKETING_VERSION)  # Sparkle compares CFBundleVersion; keep it equal to the version
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_USER_SCRIPT_SANDBOXING: NO
-        SPARKLE_PUBLIC_KEY: ""   # set from Sparkle's generate_keys (see RELEASING.md)
+        SPARKLE_PUBLIC_KEY: "gDzuwoaL+TjeSETtjlsXjErSjy596Dd2kyn3sajKj7Y="   # Sparkle EdDSA public key (private half: GitHub secret SPARKLE_ED_PRIVATE_KEY)
       configs:
         Release:
           ARCHS: "arm64 x86_64"

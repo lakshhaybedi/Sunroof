@@ -85,8 +85,11 @@ jobs:
           if [ "$HAS_SIGNING" = "true" ] && [ "$HAS_NOTARY" != "true" ]; then
             echo "::warning::Signed but NOT notarized (ASC_* secrets missing) — Gatekeeper will block this download"
           fi
-          if [ "$HAS_SPARKLE" = "true" ] && { [ "$HAS_SIGNING" != "true" ] || [ "$HAS_NOTARY" != "true" ]; }; then
-            echo "::warning::Skipping the appcast: updates are only published for signed + notarized builds"
+          if [ "$HAS_SPARKLE" = "true" ] && [ "$HAS_SIGNING" = "true" ] && [ "$HAS_NOTARY" != "true" ]; then
+            echo "::warning::Skipping the appcast: a signed but un-notarized update would be blocked by Gatekeeper"
+          fi
+          if [ "$HAS_SPARKLE" = "true" ] && [ "$HAS_SIGNING" != "true" ]; then
+            echo "::warning::Publishing an unsigned update — users must re-allow Accessibility after it installs"
           fi
 
       - name: Notarize and staple
@@ -113,8 +116,9 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "Sunroof $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
 
       - name: Update Sparkle appcast (gh-pages)
-        # Only signed + notarized builds are offered as updates (an ad-hoc update would drop the user's permissions).
-        if: env.HAS_SPARKLE == 'true' && env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
+        # Unsigned builds are offered too (EdDSA-verified; Accessibility must be re-allowed after each one).
+        # A signed build is only offered once notarized, or Gatekeeper would block it.
+        if: env.HAS_SPARKLE == 'true' && (env.HAS_SIGNING != 'true' || env.HAS_NOTARY == 'true')
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
