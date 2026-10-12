@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.9
+
+- **System Stats**:
+  - Shows temperatures (chip, SSD and battery, plus GPU on Macs that report it) and GPU usage.
+  - New Large size with big temperature tiles.
+  - Cleaner Medium layout with compact chips.
+  - Turn GPU and Temperatures on or off in *Settings › Widgets*.
+- **Clipboard**: every row is the same height, with text left-aligned and vertically centred.
+
 ## 0.2.8
 
 - **Smoother scrolling**: the widget strip uses a single blur instead of stacking one blur per widget.
