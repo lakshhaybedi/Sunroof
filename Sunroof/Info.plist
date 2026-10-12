@@ -18,6 +18,10 @@
 	<key>SUEnableAutomaticChecks</key><true/>
 	<key>SUAutomaticallyUpdate</key><true/>
 	<key>SUScheduledCheckInterval</key><integer>86400</integer>
+	<key>NSCalendarsFullAccessUsageDescription</key><string>Sunroof shows your calendar in its Calendar widget.</string>
+	<key>NSRemindersFullAccessUsageDescription</key><string>Sunroof shows and updates your reminders in its Tasks widget.</string>
+	<key>NSLocationUsageDescription</key><string>Sunroof uses your location for the Weather widget (only if you choose "Use my location").</string>
+	<key>NSAppleEventsUsageDescription</key><string>Sunroof shows what's playing in Music or Spotify and lets you control playback from its Music widget.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

@@ -61,6 +61,10 @@ final class AppSettings {
     private var widgetLayouts: [String: WidgetLayout] {
         didSet { save((try? JSONEncoder().encode(widgetLayouts)) ?? Data(), "widgetLayouts") }
     }
+    /// 0 = follow the system; 1 = Sunday … 7 = Saturday.
+    var calendarFirstWeekday: Int { didSet { save(calendarFirstWeekday, "calendarFirstWeekday") } }
+    var hiddenCalendarIDs: [String] { didSet { save(hiddenCalendarIDs, "hiddenCalendarIDs") } }
+    var calendarMediumShowsAgenda: Bool { didSet { save(calendarMediumShowsAgenda, "calendarMediumShowsAgenda") } }
     func widgetLayout(forDisplay key: String) -> WidgetLayout { widgetLayouts[key] ?? .default }
     func setWidgetLayout(_ layout: WidgetLayout, forDisplay key: String) { widgetLayouts[key] = layout }
 
@@ -117,6 +121,9 @@ final class AppSettings {
         lastNoteSelection = v("lastNoteSelection", 0)
         lastPanel = PanelID(rawValue: v("lastPanel", "")) ?? .notes
         showWidgets = v("showWidgets", true)
+        calendarFirstWeekday = v("calendarFirstWeekday", 0)
+        hiddenCalendarIDs = defaults.stringArray(forKey: "settings.hiddenCalendarIDs") ?? []
+        calendarMediumShowsAgenda = v("calendarMediumShowsAgenda", false)
         widgetRows = v("widgetRows", 2)
         widgetLayouts = (defaults.data(forKey: "settings.widgetLayouts"))
             .flatMap { try? JSONDecoder().decode([String: WidgetLayout].self, from: $0) } ?? [:]

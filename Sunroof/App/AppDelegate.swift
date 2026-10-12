@@ -159,6 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeWidgetModel(_ kind: WidgetKind) -> WidgetModel? {
         switch kind {
         case .stats: StatsModel()
+        case .calendar: CalendarModel(settings: settings)
         default: nil
         }
     }
@@ -167,6 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let model = widgets.model(kind)
         switch kind {
         case .stats: if let m = model as? StatsModel { return AnyView(StatsWidget(model: m, size: size)) }
+        case .calendar: if let m = model as? CalendarModel { return AnyView(CalendarWidget(model: m, size: size).environment(settings)) }
         default: break
         }
         return AnyView(WidgetPlaceholder(kind: kind))
