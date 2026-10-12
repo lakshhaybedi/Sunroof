@@ -45,7 +45,8 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
         Task { await refresh(force: false) }
         guard timer == nil else { return }
         let t = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { Task { await self?.refresh(force: false) } }
+            guard let self else { return }
+            MainActor.assumeIsolated { Task { await self.refresh(force: false) } }
         }
         t.tolerance = 60
         RunLoop.main.add(t, forMode: .common)
