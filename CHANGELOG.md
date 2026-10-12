@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.7
+
+- **Calendar and Reminders**: widgets show your data as soon as you allow access. Before, they kept asking again until Sunroof restarted.
+- **Music player**: a thinner progress bar, a ♥ to favourite in Apple Music, shuffle, and 🔍 search (searches your Music library and plays the song you pick; with Spotify, opens Spotify's search).
+- **Widgets**: even padding around the widget strip.
+
 ## 0.2.6
 
 - **Clean Up Note is smarter**: "Marc - text" labels get the name in bold. A long first line is cleaned like any other paragraph. Lines of dashes become dividers.
