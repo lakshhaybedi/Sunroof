@@ -102,6 +102,14 @@ final class StatsModel: WidgetModel {
     @ObservationIgnored private var lastTicks: CPUTicks?
     @ObservationIgnored private var lastNet: (rx: UInt64, tx: UInt64, at: TimeInterval)?
 
+    #if DEBUG
+    /// Fixed readings for screenshots and previews.
+    func usePreview(cpu: Double, memory: (used: UInt64, total: UInt64), battery: (Double, Bool), freeDisk: Int64, down: Double, up: Double) {
+        (self.cpu, memoryUsed, memoryTotal, self.battery, self.freeDisk, self.down, self.up) =
+            (cpu, memory.used, memory.total, battery, freeDisk, down, up)
+    }
+    #endif
+
     func start() {
         guard timer == nil else { return }
         sample()

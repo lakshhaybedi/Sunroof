@@ -1,16 +1,17 @@
 <p align="center"><img src="docs/images/logo.png" alt="Sunroof" width="480"></p>
 
-<p align="center"><b>Your clipboard, files and notes — one scroll away.</b><br>
+<p align="center"><b>Your clipboard, files, notes and widgets — one scroll away.</b><br>
 Move the pointer to the very top of the screen and scroll down: a strip slides open with everything you keep reaching for.</p>
 
 <p align="center">
   <a href="https://github.com/lakshhaybedi/Sunroof/releases/latest">Download</a> ·
   <a href="#features">Features</a> ·
+  <a href="#-widgets">Widgets</a> ·
   <a href="#keyboard-shortcuts">Shortcuts</a> ·
   <a href="#build-from-source">Build</a>
 </p>
 
-![Sunroof's shelf: clipboard history, a file drawer and markdown notes side by side](docs/images/hero.png)
+![Sunroof's shelf: clipboard history, a file drawer and markdown notes side by side, with calendar, weather, music, tasks and system widgets floating underneath](docs/images/hero.png)
 
 ## Why Sunroof
 
@@ -42,9 +43,23 @@ It's a native Swift / SwiftUI app for macOS 26 and later. It's fast and light: a
 - Paste images inline; select text for a floating formatting bar; **⌘K** to add a link
 - `||secret||` hides text until you click it
 - Pin notes, search everything, and **float any note as a sticky** that stays on top
+- **Clean Up Note** (**⌘⇧K** or ✨): turns pasted or imported plain text into tidy markdown: bullets, numbered lists, checkboxes, headings, and **Name -** / **Label:** prefixes in bold
 - Changes from another Mac never overwrite unsaved work; a conflict copy is kept instead
+- Coming from Unclutter? `scripts/import-unclutter-notes.py` copies all your Unclutter notes across
 
 <br clear="right">
+
+### 🧩 Widgets
+![Widgets: a month calendar, weather for Lisbon, a music player, a task list and system stats](docs/images/widgets.png)
+
+A row of widgets floats under the shelf on frosted glass. Drag one onto another to rearrange them, right-click to resize or remove, and use **＋** to add more.
+- **Calendar**: month view with your events and the day's agenda (Apple Calendar)
+- **Weather**: now, the next hours and the week, for a city you pick or your location ([Open-Meteo](https://open-meteo.com), no account needed)
+- **Music**: Apple Music or Spotify, with album art, a scrubber, shuffle, ♥ favourites and search
+- **Tasks**: Apple Reminders, or Sunroof's own list kept in a note
+- **System stats**: CPU, memory, battery, disk and network
+
+Widgets only run while the shelf is open, so they cost nothing the rest of the time.
 
 ### ✨ Everywhere
 - **⌘⇧F** searches clipboard, files and notes at once
@@ -64,16 +79,18 @@ It's a native Swift / SwiftUI app for macOS 26 and later. It's fast and light: a
 | Shelf | **Esc** · scroll up at the top | Close |
 | Clipboard | **⏎** / **⌥⏎** | Paste / paste as plain text |
 | Clipboard | **⌘1–9** · **⌘C** · **⌘S** · **⌫** · **Space** | Quick paste · copy · star · delete · Quick Look |
-| Files | **⏎** · **⌘O** · **Space** · **⌘⌫** · **⌘↑** | Rename · open · Quick Look · Trash · up a folder |
+| Files | **⏎** · **⌘O** · **Space** · **⌘⌫** · **⌘↑** | Rename · open · Quick Look (Space again closes, arrows move) · Trash · up a folder |
+| Files | **⌘A** · **⌘C** | Select all · copy files |
 | Files | **⌘1** / **⌘2** | Icons / list |
 | Notes | **⌘B** **⌘I** **⌘U** · **⇧⌘X** · **⇧⌘H** · **⌘E** · **⌘K** | Bold, italic, underline · strike · highlight · code · link |
 | Notes | **⌘1–3** · **⇧⌘8** · **⇧⌘7** · **⇧⌘L** | Headings · bullets · numbers · checklist |
 | Notes | **⌘⏎** · **⌘⌥↑/↓** · **Tab** / **⇧Tab** | Tick a checkbox · move a line · indent |
 | Notes | **⌘-click** a link | Open it |
+| Notes | **⌘⇧K** | Clean Up Note |
 
 ## Performance
 
-Measured with `scripts/perf.sh` on Apple Silicon (Release build):
+Measured with `scripts/perf.sh` on Apple Silicon (Release build, before widgets were added; widgets do no work while the shelf is closed):
 
 | | Memory | CPU at rest | Idle wake-ups | Threads |
 |---|---|---|---|---|
@@ -91,8 +108,10 @@ Sunroof needs **macOS 26** or later and runs natively on Apple Silicon and Intel
 ## Permissions & privacy
 
 - **Accessibility** is used only to paste for you (⏎ in the clipboard). Without it, clips are copied and you press ⌘V yourself.
+- **Calendar, Reminders, Location, Music / Spotify control**: asked only when you use the matching widget.
 - **Documents / Desktop**: macOS asks once when Sunroof first uses its folders (the Desktop only if you turn on the screenshot catcher).
-- **Nothing leaves your Mac.** Notes and Files are ordinary files in folders you choose; put them in iCloud Drive or Dropbox to sync. Clipboard history stays on this Mac, and concealed clips are never saved.
+- **Your data stays on your Mac.** Notes and Files are ordinary files in folders you choose; put them in iCloud Drive or Dropbox to sync. Clipboard history stays on this Mac, and concealed clips are never saved.
+- The only network requests are the **Weather** widget (your chosen city's coordinates go to [Open-Meteo](https://open-meteo.com)) and the daily **update check** on GitHub.
 
 ## Build from source
 
