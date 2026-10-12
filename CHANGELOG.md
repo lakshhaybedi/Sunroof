@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.3
+
+- **Widgets look new**: each widget sits on the same Liquid Glass as the shelf and blurs what's behind it. Clicking into a widget no longer dims the shelf.
+- **Colour**: Weather follows the sky, Music shows the album art blurred behind it, and Calendar, Tasks and System Stats each have their own tint.
+- **Fit**: widgets fill the full width. The shelf can't grow over them. Large widgets shrink to fit a one-row band, so Calendar no longer disappears.
+- **Rearrange by dragging**: drag a widget onto another to swap places. The ＋ menu now opens right above the ＋.
+- **Music**: click or drag the progress bar to move the playhead.
+
 ## 0.2.2
 
 - **Widgets float under the shelf**: they now sit in their own see-through tray below the shelf, so Clipboard, Files and Notes keep their full height. Each widget is a plain blurred card with a soft shadow, with no colour tint.
