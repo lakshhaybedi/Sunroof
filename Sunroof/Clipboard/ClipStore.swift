@@ -28,6 +28,8 @@ final class ClipStore {
         self.favoritesDir = favoritesDir
         self.limit = limit
         try? FileManager.default.createDirectory(at: historyDir.appendingPathComponent("images"), withIntermediateDirectories: true)
+        Self.makePrivate(historyDir) // clipboard history is readable by this account only
+        Self.makePrivate(historyImagesDir)
         history = Self.load(historyFile, imagesDir: historyImagesDir) ?? []
         loadFavorites()
         trim()
@@ -105,7 +107,8 @@ final class ClipStore {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return clips }
         return clips.filter { c in
-            [c.text, c.source.name].compactMap { $0 }.contains { $0.localizedStandardContains(q) }
+            // A concealed clip only matches by app name: matching its text would confirm what a password contains.
+            [c.isSensitive ? nil : c.text, c.source.name].compactMap { $0 }.contains { $0.localizedStandardContains(q) }
                 || (c.fileURLs ?? []).contains { $0.lastPathComponent.localizedStandardContains(q) }
         }
     }
@@ -172,7 +175,15 @@ final class ClipStore {
             guard let data = try? encoder.encode(job.clips) else { continue }
             try? FileManager.default.createDirectory(at: job.url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? data.write(to: job.url, options: .atomic)
+            makePrivate(job.url)
         }
+    }
+
+    /// rwx/rw for this account only (0700 folders, 0600 files).
+    nonisolated static func makePrivate(_ url: URL) {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
+        try? FileManager.default.setAttributes([.posixPermissions: isDir.boolValue ? 0o700 : 0o600], ofItemAtPath: url.path)
     }
 
     private func loadFavorites() {

@@ -59,6 +59,7 @@ enum ClipReader {
         var c = clip(.image, payload: png)
         let name = "\(c.id.uuidString).png"
         guard (try? png.write(to: imagesDir.appendingPathComponent(name), options: .atomic)) != nil else { return nil }
+        ClipStore.makePrivate(imagesDir.appendingPathComponent(name))
         c.imageFile = name
         return c
     }

@@ -16,8 +16,8 @@ struct PlaceholderPanel: View {
 
 extension PanelDescriptor {
     static let placeholders: [PanelDescriptor] = [
-        .init(id: .clipboard, title: "Clipboard History") { AnyView(PlaceholderPanel(title: "Clipboard History")) },
-        .init(id: .files, title: "Files") { AnyView(PlaceholderPanel(title: "Files")) },
-        .init(id: .notes, title: "Notes") { AnyView(PlaceholderPanel(title: "Notes")) },
+        .init(id: .clipboard) { AnyView(PlaceholderPanel(title: "Clipboard History")) },
+        .init(id: .files) { AnyView(PlaceholderPanel(title: "Files")) },
+        .init(id: .notes) { AnyView(PlaceholderPanel(title: "Notes")) },
     ]
 }

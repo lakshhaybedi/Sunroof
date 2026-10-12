@@ -5,7 +5,7 @@ import Observation
 /// Tasks from Apple Reminders (when allowed) or Sunroof's own Tasks.md.
 @MainActor @Observable
 final class TasksModel: WidgetModel {
-    struct List: Identifiable, Equatable { let id: String; let title: String; let color: NSColor? }
+    struct List: Identifiable, Equatable { let id: String; let title: String }
     static let sunroofListID = "sunroof"
 
     private(set) var remindersAllowed = false
@@ -96,7 +96,7 @@ final class TasksModel: WidgetModel {
 
     private func reload() {
         guard remindersAllowed else { lists = []; reminders = []; return }
-        lists = store.calendars(for: .reminder).map { List(id: $0.calendarIdentifier, title: $0.title, color: $0.color) }
+        lists = store.calendars(for: .reminder).map { List(id: $0.calendarIdentifier, title: $0.title) }
         guard currentListID != Self.sunroofListID, let list = store.calendar(withIdentifier: currentListID) else { reminders = []; return }
         let predicate = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: [list])
         store.fetchReminders(matching: predicate) { [weak self] found in

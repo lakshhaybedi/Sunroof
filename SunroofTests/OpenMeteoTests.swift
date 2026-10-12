@@ -12,7 +12,7 @@ import Testing
     """
 
     @Test func decodesForecast() throws {
-        let f = try OpenMeteo.decode(Data(Self.fixture.utf8), now: ISO8601DateFormatter().date(from: "2026-10-12T09:30:00Z")!)
+        let f = try OpenMeteo.decode(Data(Self.fixture.utf8))
         #expect(f.current.temperature == 17.4)
         #expect(f.current.code == 2)
         #expect(f.hourly.count == 6)

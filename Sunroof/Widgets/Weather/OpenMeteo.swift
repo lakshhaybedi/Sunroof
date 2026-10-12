@@ -46,7 +46,7 @@ enum OpenMeteo {
         let current: Current; let hourly: Hourly; let daily: Daily
     }
 
-    static func decode(_ data: Data, now: Date = .now) throws -> Forecast {
+    static func decode(_ data: Data) throws -> Forecast {
         let r = try JSONDecoder().decode(Raw.self, from: data)
         // Hourly times are local to the place: start at the current observation's hour.
         let start = r.hourly.time.firstIndex { $0 >= String(r.current.time.prefix(13)) } ?? 0

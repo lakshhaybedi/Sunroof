@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.8
+
+- **Smoother scrolling**: the widget strip uses a single blur instead of stacking one blur per widget.
+- **Smaller app**: 7.6 MB instead of 14 MB (unused code is removed and debug symbols are stripped).
+- **Security**:
+  - Clipboard history files are private to your account.
+  - Searching never matches inside password clips.
+  - ⏎-to-paste only types into the app you came from.
+  - Note links can't run files or trigger other apps.
+  - Note images never load from the web.
+  - The app now uses the hardened runtime.
+- **System Stats**: choose what it shows (CPU, memory, battery, disk, network) in *Settings › Widgets*.
+- **Resize and menu bar**: the pill above the widgets resizes the shelf, and clicking the menu bar icon while the shelf is open now closes it.
+
 ## 0.2.7
 
 - **Calendar and Reminders**: widgets show your data as soon as you allow access. Before, they kept asking again until Sunroof restarted.

@@ -38,7 +38,6 @@ final class ShelfController {
     /// Frontmost app when the shelf opened — the paste target.
     private(set) var previousApp: NSRunningApplication?
     var isVisible: Bool { panel.isVisible && hideGeneration == 0 }
-    var visibleFrame: CGRect? { isVisible ? shelfFrame : nil }
     var displayKey: String? { screen.map(ShelfGeometry.displayKey) }
 
     init(settings: AppSettings) {

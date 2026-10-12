@@ -27,6 +27,12 @@ final class Paster {
             }
             target.activate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                // Only type ⌘V into the app it was meant for: if something else took focus, a clip (maybe a
+                // password) would land in the wrong place.
+                guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier else {
+                    Toast.show("Copied — press ⌘V")
+                    return
+                }
                 let src = CGEventSource(stateID: .combinedSessionState)
                 for down in [true, false] {
                     let e = CGEvent(keyboardEventSource: src, virtualKey: 9, keyDown: down) // V

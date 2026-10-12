@@ -398,7 +398,8 @@ final class NoteTextView: NSTextView {
             decorate(content, .rule)
             handledBlockMarker = true
         case let .image(path) where !caret:
-            if let url = URL(string: path, relativeTo: baseURL)?.absoluteURL ?? baseURL?.appendingPathComponent(path) {
+            if let url = URL(string: path, relativeTo: baseURL)?.absoluteURL ?? baseURL?.appendingPathComponent(path),
+               NoteImages.isAllowed(url) {
                 clear(content)
                 let p = baseParagraph.mutableCopy() as! NSMutableParagraphStyle
                 p.minimumLineHeight = imageHeight(url)
@@ -606,7 +607,11 @@ final class NoteTextView: NSTextView {
             }
         }
         if event.modifierFlags.contains(.command), let url = attribute(.noteLink, at: p) as? URL {
-            NSWorkspace.shared.open(url)
+            switch NoteLinkAction(url) {
+            case .open: NSWorkspace.shared.open(url)
+            case .reveal: NSWorkspace.shared.activateFileViewerSelecting([url])
+            case .ignore: NSSound.beep()
+            }
             return
         }
         super.mouseDown(with: event)

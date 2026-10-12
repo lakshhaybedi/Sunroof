@@ -96,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let (store, settings, paster) = (clipStore!, settings, paster!)
         shelf.descriptors = PanelDescriptor.placeholders.map { d in
             guard d.id == .clipboard else { return d }
-            return PanelDescriptor(id: .clipboard, title: "Clipboard") { [weak self] in
+            return PanelDescriptor(id: .clipboard) { [weak self] in
                 AnyView(ClipboardPanel(store: store, settings: settings, paster: paster, notes: self?.noteStore))
             }
         }
@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shelf.onShow.append { drawer.reload() } // picks up a custom folder that came back online
         shelf.descriptors = shelf.descriptors.map { d in
             guard d.id == .files else { return d }
-            return PanelDescriptor(id: .files, title: "Files") { AnyView(FilesPanel(model: drawer, settings: settings)) }
+            return PanelDescriptor(id: .files) { AnyView(FilesPanel(model: drawer, settings: settings)) }
         }
     }
 
@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         shelf.descriptors = shelf.descriptors.map { d in
             guard d.id == .notes else { return d }
-            return PanelDescriptor(id: .notes, title: "Notes") { [weak self] in
+            return PanelDescriptor(id: .notes) { [weak self] in
                 AnyView(NotesPanel(controller: notes, onFloat: { self?.stickies.open($0) }))
             }
         }

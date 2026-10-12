@@ -15,7 +15,6 @@ extension Notification.Name {
 
 struct PanelDescriptor {
     let id: PanelID
-    let title: String
     let makeView: @MainActor () -> AnyView
 }
 

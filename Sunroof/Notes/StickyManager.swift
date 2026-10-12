@@ -19,8 +19,6 @@ final class StickyManager: NSObject, NSWindowDelegate {
         store.onDelete.append { [weak self] name in self?.close(name) }
     }
 
-    var openFilenames: [String] { Array(panels.keys) }
-
     func open(_ filename: String) {
         if let p = panels[filename] { p.orderFrontRegardless(); return }
         guard store.note(filename) != nil else { return }

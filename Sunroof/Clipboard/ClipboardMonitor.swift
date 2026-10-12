@@ -32,13 +32,6 @@ final class ClipboardMonitor {
         syncLimit()
     }
 
-    func stop() {
-        timer?.invalidate()
-        timer = nil
-        observers.forEach { $0.0.removeObserver($0.1) }
-        observers.removeAll()
-    }
-
     private func observe(_ center: NotificationCenter, _ name: Notification.Name, slow: Bool) {
         let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {

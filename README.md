@@ -41,7 +41,7 @@ It's a native Swift / SwiftUI app for macOS 26 and later. It's fast and light: a
 - **Live styling**: the markdown hides as you type: headings, **bold**, *italic*, ~~strike~~, ==highlight==, `code`, quotes and links
 - **Checklists you click** (type `[]` and a space), bullet lists and numbered lists that renumber themselves, with **Tab** to indent
 - Paste images inline; select text for a floating formatting bar; **⌘K** to add a link
-- `||secret||` hides text until you click it
+- `||secret||` hides text on screen until you click it (the note file itself stays plain text)
 - Pin notes, search everything, and **float any note as a sticky** that stays on top
 - **Clean Up Note** (**⌘⇧K** or ✨): turns pasted or imported plain text into tidy markdown: bullets, numbered lists, checkboxes, headings, and **Name -** / **Label:** prefixes in bold
 - Changes from another Mac never overwrite unsaved work; a conflict copy is kept instead
@@ -111,6 +111,13 @@ Sunroof needs **macOS 26** or later and runs natively on Apple Silicon and Intel
 - **Calendar, Reminders, Location, Music / Spotify control**: asked only when you use the matching widget.
 - **Documents / Desktop**: macOS asks once when Sunroof first uses its folders (the Desktop only if you turn on the screenshot catcher).
 - **Your data stays on your Mac.** Notes and Files are ordinary files in folders you choose; put them in iCloud Drive or Dropbox to sync. Clipboard history stays on this Mac, and concealed clips are never saved.
+- **Security:**
+  - Password-manager clips are never written to disk and never match a search.
+  - Clipboard history files are readable by your account only.
+  - ⏎-to-paste types only into the app you came from.
+  - ⌘-click in a note opens web and mail links only (a link to a file just shows it in Finder).
+  - Note images never load from the internet.
+  - Shipped builds use the hardened runtime and can't be attached to by debuggers.
 - The only network requests are the **Weather** widget (your chosen city's coordinates go to [Open-Meteo](https://open-meteo.com)) and the daily **update check** on GitHub.
 
 ## Build from source
