@@ -55,6 +55,15 @@ final class AppSettings {
     var notesShowList: Bool { didSet { save(notesShowList, "notesShowList") } }
     var lastNote: String? { didSet { save(lastNote ?? "", "lastNote") } }
     var lastNoteSelection: Int { didSet { save(lastNoteSelection, "lastNoteSelection") } }
+    // Widgets
+    var showWidgets: Bool { didSet { save(showWidgets, "showWidgets") } }
+    var widgetRows: Int { didSet { save(widgetRows, "widgetRows") } }
+    private var widgetLayouts: [String: WidgetLayout] {
+        didSet { save((try? JSONEncoder().encode(widgetLayouts)) ?? Data(), "widgetLayouts") }
+    }
+    func widgetLayout(forDisplay key: String) -> WidgetLayout { widgetLayouts[key] ?? .default }
+    func setWidgetLayout(_ layout: WidgetLayout, forDisplay key: String) { widgetLayouts[key] = layout }
+
     /// Open sticky notes: filename → NSStringFromRect(frame).
     var stickies: [String: String] { didSet { save((try? JSONEncoder().encode(stickies)) ?? Data(), "stickies") } }
     /// Column the user last worked in; gets keyboard focus when the shelf opens.
@@ -107,6 +116,10 @@ final class AppSettings {
         lastNote = (defaults.string(forKey: "settings.lastNote")).flatMap { $0.isEmpty ? nil : $0 }
         lastNoteSelection = v("lastNoteSelection", 0)
         lastPanel = PanelID(rawValue: v("lastPanel", "")) ?? .notes
+        showWidgets = v("showWidgets", true)
+        widgetRows = v("widgetRows", 2)
+        widgetLayouts = (defaults.data(forKey: "settings.widgetLayouts"))
+            .flatMap { try? JSONDecoder().decode([String: WidgetLayout].self, from: $0) } ?? [:]
         stickies = (defaults.data(forKey: "settings.stickies")).flatMap { try? JSONDecoder().decode([String: String].self, from: $0) } ?? [:]
     }
 
