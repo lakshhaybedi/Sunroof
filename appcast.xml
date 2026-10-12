@@ -3,6 +3,18 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.2</title>
+      <pubDate>Mon, 12 Oct 2026 06:10:49 -0000</pubDate>
+      <sparkle:version>0.2.2</sparkle:version>
+      <sparkle:shortVersionString>0.2.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Widgets float under the shelf**: they now sit in their own see-through tray below the shelf, so Clipboard, Files and Notes keep their full height. Each widget is a plain blurred card with a soft shadow, with no colour tint.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.2/Sunroof-0.2.2.dmg" type="application/octet-stream" sparkle:edSignature="RKXwqZKh99Zf7A1HzhtiIODlznUqTRmlAQNXGMhIjOpmVZxTlKX01J6G/vNwoiRwR/hRBjvTAQUhk1L94TkSCw==" length="4767211" />
+    </item>
+    <item>
       <title>Sunroof 0.2.1</title>
       <pubDate>Mon, 12 Oct 2026 05:47:24 -0000</pubDate>
       <sparkle:version>0.2.1</sparkle:version>
