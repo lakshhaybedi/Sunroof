@@ -3,6 +3,7 @@
 # Run it from Terminal with other apps idle (minimise anything that animates, e.g. a chat streaming a reply).
 # Usage: scripts/gpu-check.sh
 set -u
+export LC_ALL=C # ioreg's output isn't all valid UTF-8; awk must treat it as bytes
 
 ws() { # WindowServer's accumulated GPU time, in nanoseconds
   ioreg -l -w0 2>/dev/null | awk '/"IOUserClientCreator"/{c=($0 ~ /WindowServer/)}
@@ -12,6 +13,7 @@ ws() { # WindowServer's accumulated GPU time, in nanoseconds
 measure() { # ms of GPU per second over 5 s
   local a b s e
   a=$(ws); s=$(date +%s); sleep 5; b=$(ws); e=$(date +%s)
+  if [ "${a:-0}" = 0 ] || [ "${b:-0}" = 0 ]; then echo "?"; return; fi
   echo $(( (b - a) / 1000000 / (e - s) ))
 }
 
