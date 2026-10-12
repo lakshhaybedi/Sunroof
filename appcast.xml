@@ -3,6 +3,20 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.6</title>
+      <pubDate>Mon, 12 Oct 2026 07:43:32 -0000</pubDate>
+      <sparkle:version>0.2.6</sparkle:version>
+      <sparkle:shortVersionString>0.2.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Clean Up Note is smarter**: &quot;Marc - text&quot; labels get the name in bold. A long first line is cleaned like any other paragraph. Lines of dashes become dividers.
+- **Widgets**: the strip is only as tall as the rows your widgets use.
+- **Calendar and Reminders access**: Sunroof comes to the front to ask, so the macOS dialog can appear. If you refused access before, Sunroof opens the right pane of System Settings, and the widget now shows when access is off.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.6/Sunroof-0.2.6.dmg" type="application/octet-stream" sparkle:edSignature="gy0pbbIfBVyiArWH3gMl2FBDmMmBuafzHf+RYmW5RUOYIuTSEDZ3qbOuP9wX+lAIORx33J7aGUrszMzDheIGAA==" length="4852901" />
+    </item>
+    <item>
       <title>Sunroof 0.2.5</title>
       <pubDate>Mon, 12 Oct 2026 07:25:44 -0000</pubDate>
       <sparkle:version>0.2.5</sparkle:version>
