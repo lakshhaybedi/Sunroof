@@ -7,7 +7,9 @@ final class ThumbnailCache {
     static let shared = ThumbnailCache()
     private let cache = NSCache<NSString, CGImage>()
 
-    init() { cache.totalCostLimit = 64 * 1024 * 1024 }
+    // Kept between shelf opens (redrawing every thumbnail on each open made opening spike the GPU);
+    // a 32 MB cap keeps memory modest, and NSCache also drops entries when macOS is short of memory.
+    init() { cache.totalCostLimit = 32 * 1024 * 1024 }
 
     func thumbnail(for url: URL, maxPixelSize: Int) -> CGImage? {
         let key = "\(url.path)#\(maxPixelSize)" as NSString

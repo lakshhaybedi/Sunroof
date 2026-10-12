@@ -100,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AnyView(ClipboardPanel(store: store, settings: settings, paster: paster, notes: self?.noteStore))
             }
         }
-        shelf.onHide.append { ThumbnailCache.shared.purge(); QuickLook.close() }
+        shelf.onHide.append { QuickLook.close() }
     }
 
     private func setUpFiles() {

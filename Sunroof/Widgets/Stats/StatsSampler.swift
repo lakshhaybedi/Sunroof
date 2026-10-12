@@ -88,7 +88,41 @@ enum StatsSampler {
 }
 
 extension StatsSampler {
-    /// GPU busy share 0…1 from the graphics driver's public statistics (nil if not reported).
+    /// GPU time used by all apps (ns), summed from the graphics driver's per-client statistics.
+    /// Unlike "Device Utilization %", this doesn't inflate when the GPU idles at a low clock.
+    static func gpuTimeNs() -> UInt64? {
+        var it: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &it) == KERN_SUCCESS else { return nil }
+        defer { IOObjectRelease(it) }
+        var total: UInt64 = 0, found = false
+        var acc = IOIteratorNext(it)
+        while acc != 0 {
+            var children: io_iterator_t = 0
+            if IORegistryEntryGetChildIterator(acc, kIOServicePlane, &children) == KERN_SUCCESS {
+                var c = IOIteratorNext(children)
+                while c != 0 {
+                    if let usage = IORegistryEntryCreateCFProperty(c, "AppUsage" as CFString, kCFAllocatorDefault, 0)?
+                        .takeRetainedValue() as? [[String: Any]] {
+                        for u in usage { if let t = u["accumulatedGPUTime"] as? NSNumber { total &+= t.uint64Value; found = true } }
+                    }
+                    IOObjectRelease(c)
+                    c = IOIteratorNext(children)
+                }
+                IOObjectRelease(children)
+            }
+            IOObjectRelease(acc)
+            acc = IOIteratorNext(it)
+        }
+        return found ? total : nil
+    }
+
+    /// Share of wall time the GPU spent working (0…1).
+    static func gpuBusy(prevNs: UInt64, nowNs: UInt64, interval: Double) -> Double {
+        guard nowNs > prevNs, interval > 0 else { return 0 }
+        return min(1, Double(nowNs - prevNs) / 1e9 / interval)
+    }
+
+    /// GPU busy share 0…1 at its current clock, as the driver reports it (fallback only).
     static func gpuUsage() -> Double? {
         var it: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &it) == KERN_SUCCESS else { return nil }
@@ -127,6 +161,7 @@ final class StatsModel: WidgetModel {
     /// Sensors are read off the main thread (76 of them on an M5 Pro) so scrolling never waits on them.
     private static let sensorQueue = DispatchQueue(label: "sunroof.stats.sensors", qos: .utility)
     private nonisolated(unsafe) static var reader: TemperatureReader?
+    private nonisolated(unsafe) static var lastGPU: (ns: UInt64, at: TimeInterval)? // used on sensorQueue only
 
     #if DEBUG
     /// Fixed readings for screenshots and previews.
@@ -153,6 +188,7 @@ final class StatsModel: WidgetModel {
         lastTicks = nil
         lastNet = nil
         ticks = 0 // next open reads temperatures and disk right away
+        Self.sensorQueue.async { Self.lastGPU = nil } // don't average GPU over the time the shelf was closed
     }
 
     /// Every assignment redraws the widget (and makes macOS recomposite the blurred shelf), so values are rounded
@@ -177,8 +213,6 @@ final class StatsModel: WidgetModel {
             if StatsSampler.formatRate(u) != StatsSampler.formatRate(up) { up = u }
         }
         lastNet = (net.rx, net.tx, now)
-        let g = StatsSampler.gpuUsage().map(percent)
-        if g != gpu { gpu = g }
         if ticks % 3 == 0 { readSlowValues(disk: ticks % 60 == 0) } // temperatures and disk change slowly
         ticks += 1
     }
@@ -194,10 +228,19 @@ final class StatsModel: WidgetModel {
             let raw = Self.reader?.read() ?? Temperatures()
             let t = Temperatures(chip: raw.chip?.rounded(), gpu: raw.gpu?.rounded(), ssd: raw.ssd?.rounded(), battery: raw.battery?.rounded())
             let d = disk ? StatsSampler.freeDisk() : nil
+            var g: Double?
+            let now = ProcessInfo.processInfo.systemUptime
+            if let ns = StatsSampler.gpuTimeNs() {
+                if let p = Self.lastGPU { g = (StatsSampler.gpuBusy(prevNs: p.ns, nowNs: ns, interval: now - p.at) * 100).rounded() / 100 }
+                Self.lastGPU = (ns, now)
+            } else {
+                g = StatsSampler.gpuUsage().map { ($0 * 100).rounded() / 100 }
+            }
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     if t != self.temperatures { self.temperatures = t }
+                    if let g, g != self.gpu { self.gpu = g }
                     if let d, d / 1_000_000_000 != (self.freeDisk ?? -1) / 1_000_000_000 { self.freeDisk = d }
                 }
             }

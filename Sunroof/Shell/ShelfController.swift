@@ -80,16 +80,7 @@ final class ShelfController {
     /// The widget band's content (SwiftUI host), shown in the strip under the shelf.
     func setWidgetBand(_ view: NSView) {
         tray.subviews.forEach { $0.removeFromSuperview() }
-        // Frosted, untinted strip behind the widgets (blurs whatever is under the shelf); bottom corners rounded.
-        let frost = NSVisualEffectView(frame: tray.bounds)
-        frost.material = .fullScreenUI
-        frost.blendingMode = .behindWindow
-        frost.state = .active
-        frost.autoresizingMask = [.width, .height]
-        frost.wantsLayer = true
-        frost.layer?.cornerRadius = 18
-        frost.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        tray.addSubview(frost)
+        applyTrayBackground()
         view.frame = tray.bounds
         view.autoresizingMask = [.width, .height]
         tray.addSubview(view)
@@ -108,6 +99,31 @@ final class ShelfController {
 
     /// Rows the widgets fill (reported by the band); the strip is never taller than that.
     var widgetRowsInUse = 4 { didSet { if widgetRowsInUse != oldValue { updateTray() } } }
+
+    /// Behind the widgets: a frosted blur (Liquid Glass style) or a plain solid strip ("Reduce effects").
+    private func applyTrayBackground() {
+        trayBackground?.removeFromSuperview()
+        let bg: NSView
+        if settings.material == .glass {
+            let frost = NSVisualEffectView()
+            frost.material = .fullScreenUI
+            frost.blendingMode = .behindWindow
+            frost.state = .active
+            bg = frost
+        } else {
+            let solid = SolidBackgroundView()
+            solid.tint = settings.shelfTint?.nsColor
+            bg = solid
+        }
+        bg.frame = tray.bounds
+        bg.autoresizingMask = [.width, .height]
+        bg.wantsLayer = true
+        bg.layer?.cornerRadius = 18
+        bg.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        tray.addSubview(bg, positioned: .below, relativeTo: nil)
+        trayBackground = bg
+    }
+    private var trayBackground: NSView?
 
     /// Height of the widget strip (0 when widgets are off).
     private var wantedTrayHeight: CGFloat {
@@ -359,6 +375,7 @@ final class ShelfController {
                 self.applyAppearance()
                 self.updateTray()
                 self.applyMaterial()
+                if !self.tray.subviews.isEmpty { self.applyTrayBackground() }
                 self.rebuildColumnsIfNeeded()
                 self.observeSettings()
             }

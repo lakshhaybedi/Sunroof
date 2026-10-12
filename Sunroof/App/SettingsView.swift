@@ -178,10 +178,10 @@ private struct AppearanceSettings: View {
                 Text("Light").tag(Theme.light)
                 Text("Dark").tag(Theme.dark)
             }
-            Picker("Material:", selection: $settings.material) {
-                Text("Liquid Glass").tag(ShelfMaterial.glass)
-                Text("Solid").tag(ShelfMaterial.solid)
-            }
+            Toggle("Reduce effects", isOn: Binding(get: { settings.material == .solid },
+                                                   set: { settings.material = $0 ? .solid : .glass }))
+            Text("A solid shelf and widget strip instead of Liquid Glass and blur. Lighter on the GPU.")
+                .font(.caption).foregroundStyle(.secondary)
             LabeledContent("Accent:") {
                 Swatches(choices: ColorChoice.allCases, selection: Binding(get: { settings.accent }, set: { settings.accent = $0 ?? .system }))
             }

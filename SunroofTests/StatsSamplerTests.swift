@@ -38,4 +38,11 @@ import Testing
         #expect(StatsWidget.diskSize(621_300_000_000) == "621 GB")
         #expect(StatsWidget.diskSize(1_240_000_000_000) == "1.2 TB")
     }
+
+    // Real GPU busy share = GPU time used (ns) over wall time, capped at 100 %.
+    @Test func gpuBusyFromAccumulatedTime() {
+        #expect(abs(StatsSampler.gpuBusy(prevNs: 1_000_000_000, nowNs: 1_300_000_000, interval: 3) - 0.1) < 1e-9)
+        #expect(StatsSampler.gpuBusy(prevNs: 0, nowNs: 9_000_000_000, interval: 3) == 1)   // parallel queues can exceed wall time
+        #expect(StatsSampler.gpuBusy(prevNs: 5, nowNs: 1, interval: 3) == 0)              // counter reset (a process quit)
+    }
 }
