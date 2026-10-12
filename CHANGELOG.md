@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6
+
+- **Clean Up Note is smarter**: "Marc - text" labels get the name in bold. A long first line is cleaned like any other paragraph. Lines of dashes become dividers.
+- **Widgets**: the strip is only as tall as the rows your widgets use.
+- **Calendar and Reminders access**: Sunroof comes to the front to ask, so the macOS dialog can appear. If you refused access before, Sunroof opens the right pane of System Settings, and the widget now shows when access is off.
+
 ## 0.2.5
 
 - **Clean Up Note** (⌘⇧K, the ✨ button, or right-click a note): turns plain-text bullets, numbered lists, checkboxes, short headings and `Label: value` lines into tidy markdown. One ⌘Z undoes it.
