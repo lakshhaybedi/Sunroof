@@ -3,6 +3,20 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.11</title>
+      <pubDate>Mon, 12 Oct 2026 14:13:02 -0000</pubDate>
+      <sparkle:version>0.2.11</sparkle:version>
+      <sparkle:shortVersionString>0.2.11</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Lighter opening**: Files thumbnails are kept between opens instead of being redrawn every time.
+- **Reduce effects** (*Settings › Appearance*): a solid shelf and widget strip instead of Liquid Glass and blur, which is easier on the GPU.
+- **System Stats**: GPU now shows how busy the GPU really is. Before, it showed load at the GPU&#x27;s current clock speed, which read 60–70% even when the GPU was barely working.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.11/Sunroof-0.2.11.dmg" type="application/octet-stream" sparkle:edSignature="n+h4YsYADSGoxsFdF+2H/W9P0jtMm2ldQIrZPQVIEBzNCnoHZZL/x5HF5GEVgMGIaGg0hlWOEOnxsaUb3vO2Bw==" length="3727285" />
+    </item>
+    <item>
       <title>Sunroof 0.2.10</title>
       <pubDate>Mon, 12 Oct 2026 13:19:14 -0000</pubDate>
       <sparkle:version>0.2.10</sparkle:version>
