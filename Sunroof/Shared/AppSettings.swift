@@ -55,6 +55,26 @@ final class AppSettings {
     var notesShowList: Bool { didSet { save(notesShowList, "notesShowList") } }
     var lastNote: String? { didSet { save(lastNote ?? "", "lastNote") } }
     var lastNoteSelection: Int { didSet { save(lastNoteSelection, "lastNoteSelection") } }
+    // Widgets
+    var showWidgets: Bool { didSet { save(showWidgets, "showWidgets") } }
+    var widgetRows: Int { didSet { save(widgetRows, "widgetRows") } }
+    private var widgetLayouts: [String: WidgetLayout] {
+        didSet { save((try? JSONEncoder().encode(widgetLayouts)) ?? Data(), "widgetLayouts") }
+    }
+    /// 0 = follow the system; 1 = Sunday … 7 = Saturday.
+    var calendarFirstWeekday: Int { didSet { save(calendarFirstWeekday, "calendarFirstWeekday") } }
+    var hiddenCalendarIDs: [String] { didSet { save(hiddenCalendarIDs, "hiddenCalendarIDs") } }
+    var weatherCity: WeatherCity? { didSet { save((try? JSONEncoder().encode(weatherCity)) ?? Data(), "weatherCity") } }
+    var weatherUseLocation: Bool { didSet { save(weatherUseLocation, "weatherUseLocation") } }
+    /// nil = follow the system's measurement system.
+    var weatherFahrenheit: Bool? { didSet { if let f = weatherFahrenheit { save(f, "weatherFahrenheit") } else { defaults.removeObject(forKey: "settings.weatherFahrenheit") } } }
+    /// "sunroof", or a Reminders list identifier; "" = automatic (Reminders default list if allowed, else Sunroof).
+    var taskListID: String { didSet { save(taskListID, "taskListID") } }
+    var calendarMediumShowsAgenda: Bool { didSet { save(calendarMediumShowsAgenda, "calendarMediumShowsAgenda") } }
+    func widgetLayout(forDisplay key: String) -> WidgetLayout { widgetLayouts[key] ?? .default }
+    func setWidgetLayout(_ layout: WidgetLayout, forDisplay key: String) { widgetLayouts[key] = layout }
+    func resetWidgetLayouts() { widgetLayouts = [:] }
+
     /// Open sticky notes: filename → NSStringFromRect(frame).
     var stickies: [String: String] { didSet { save((try? JSONEncoder().encode(stickies)) ?? Data(), "stickies") } }
     /// Column the user last worked in; gets keyboard focus when the shelf opens.
@@ -107,6 +127,17 @@ final class AppSettings {
         lastNote = (defaults.string(forKey: "settings.lastNote")).flatMap { $0.isEmpty ? nil : $0 }
         lastNoteSelection = v("lastNoteSelection", 0)
         lastPanel = PanelID(rawValue: v("lastPanel", "")) ?? .notes
+        showWidgets = v("showWidgets", true)
+        calendarFirstWeekday = v("calendarFirstWeekday", 0)
+        hiddenCalendarIDs = defaults.stringArray(forKey: "settings.hiddenCalendarIDs") ?? []
+        calendarMediumShowsAgenda = v("calendarMediumShowsAgenda", false)
+        taskListID = v("taskListID", "")
+        weatherCity = (defaults.data(forKey: "settings.weatherCity")).flatMap { try? JSONDecoder().decode(WeatherCity.self, from: $0) }
+        weatherUseLocation = v("weatherUseLocation", false)
+        weatherFahrenheit = defaults.object(forKey: "settings.weatherFahrenheit") as? Bool
+        widgetRows = v("widgetRows", 2)
+        widgetLayouts = (defaults.data(forKey: "settings.widgetLayouts"))
+            .flatMap { try? JSONDecoder().decode([String: WidgetLayout].self, from: $0) } ?? [:]
         stickies = (defaults.data(forKey: "settings.stickies")).flatMap { try? JSONDecoder().decode([String: String].self, from: $0) } ?? [:]
     }
 

@@ -99,6 +99,21 @@ Run from Xcode or `build/Build/Products/Release/Sunroof.app`. To redo first-run:
 - [ ] Rename a sticky's note (first line) → the sticky's title follows; delete the note → the sticky closes
 - [ ] Closing a sticky keeps the note
 
+## Widgets
+- [ ] First open shows the default band (2 rows): Calendar (large), Weather, Music, Tasks (medium), System Stats (small)
+- [ ] Drag a widget onto another to reorder; right-click › Size changes it; Remove; ＋ adds it back from the gallery
+- [ ] Drag the grip on top of the band to 1–4 rows; widgets that don't fit hide and return when there's room
+- [ ] Different displays keep their own widget layouts
+- [ ] Calendar: "Allow Calendar Access" prompt → month view with event dots; ‹ › and • (today); click a day → agenda; medium ⇄ upcoming list
+- [ ] Calendar access denied → "Open Privacy Settings"
+- [ ] Tasks: Sunroof list (Notes/Tasks.md) add/tick; "Use Apple Reminders…" → lists appear; ticking a reminder completes it on iPhone too
+- [ ] Tasks.md edited in the Notes panel updates the widget
+- [ ] Weather: search a city → forecast (S/M/L); "Use my location" asks for Location; offline shows the last forecast with "Updated …"
+- [ ] Music: with Spotify or Music playing, title/artist/artwork/progress; ⏮ ⏯ ⏭ work; first use asks "allow Sunroof to control …"; nothing launches the apps; "Not playing" when neither is open
+- [ ] System Stats: CPU/memory rings move; medium shows battery, disk, network
+- [ ] Settings › Widgets: rows, week start, hidden calendars, task source, city/units, Reset layout; right-click › Widget Settings… opens it
+- [ ] Shelf closed: Activity Monitor shows ~0 % CPU and no idle wake-ups (run scripts/perf.sh with Sunroof quit and Music/Spotify closed)
+
 ## Release
 - [ ] "Check for Updates…" in the menu bar menu (unsigned build: toast "Updates aren't set up for this build.")
 - [ ] General › "Automatically check for updates" (signed builds only)

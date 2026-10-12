@@ -18,6 +18,6 @@ import Testing
     @Test func everyTabIsPresent() {
         let settings = AppSettings(defaults: UserDefaults(suiteName: "test-\(UUID())")!)
         let tabs = SettingsWindowController(settings: settings, updater: nil).tabTitles
-        #expect(tabs == ["General", "Files", "Notes", "Clipboard", "Panels", "Appearance", "Advanced"])
+        #expect(tabs == ["General", "Files", "Notes", "Clipboard", "Panels", "Widgets", "Appearance", "Advanced"])
     }
 }

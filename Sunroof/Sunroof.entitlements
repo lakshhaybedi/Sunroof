@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Hardened runtime (signed releases): allow Apple Events so the Music widget can talk to Music and Spotify. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+	<!-- Calendar, Reminders and Location widgets. -->
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
+</dict>
+</plist>

@@ -59,6 +59,21 @@ final class NoteStore {
     }
 
     /// Called on every keystroke (no text comparison — that's O(n) for huge notes).
+    /// Creates `filename` with `text` if it doesn't exist (used for Tasks.md).
+    /// Creates the note if there's none. False when a file of that name exists but isn't loaded (not UTF-8, or still
+    /// in iCloud) — it's never overwritten.
+    @discardableResult func ensureNote(_ filename: String, text: String) -> Bool {
+        if note(filename) != nil { return true }
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: url(filename).path),
+              !fm.fileExists(atPath: folder.appendingPathComponent(".\(filename).icloud").path) else { return false }
+        ensureFolder()
+        notes.append(Note(filename: filename, text: text, modified: .now))
+        write(filename, text)
+        sort()
+        return true
+    }
+
     func update(_ filename: String, text: String, from writer: UUID? = nil) {
         if let i = notes.firstIndex(where: { $0.filename == filename }) {
             notes[i].text = text

@@ -26,6 +26,7 @@ final class SettingsWindowController {
             Page(title: "Notes", symbol: "note.text", height: 190, view: AnyView(NotesSettings())),
             Page(title: "Clipboard", symbol: "clipboard", height: 480, view: AnyView(ClipboardSettings().padding(20))),
             Page(title: "Panels", symbol: "rectangle.split.3x1", height: 260, view: AnyView(PanelsSettings().padding(20))),
+            Page(title: "Widgets", symbol: "square.grid.2x2", height: 560, view: AnyView(WidgetsSettings())),
             Page(title: "Appearance", symbol: "paintpalette", height: 300, view: AnyView(AppearanceSettings())),
             Page(title: "Advanced", symbol: "gearshape", height: 230, view: AnyView(AdvancedSettings())),
         ]
@@ -55,10 +56,14 @@ final class SettingsWindowController {
         return w
     }
 
-    func show() {
+    func show(tab: String? = nil) {
         if window == nil {
             window = makeWindow()
             window?.center()
+        }
+        if let tab, let tabs = window?.contentViewController as? NSTabViewController,
+           let i = tabs.tabViewItems.firstIndex(where: { $0.label == tab }) {
+            tabs.selectedTabViewItemIndex = i
         }
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
