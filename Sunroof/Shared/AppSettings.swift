@@ -64,6 +64,8 @@ final class AppSettings {
     /// 0 = follow the system; 1 = Sunday … 7 = Saturday.
     var calendarFirstWeekday: Int { didSet { save(calendarFirstWeekday, "calendarFirstWeekday") } }
     var hiddenCalendarIDs: [String] { didSet { save(hiddenCalendarIDs, "hiddenCalendarIDs") } }
+    /// "sunroof", or a Reminders list identifier; "" = automatic (Reminders default list if allowed, else Sunroof).
+    var taskListID: String { didSet { save(taskListID, "taskListID") } }
     var calendarMediumShowsAgenda: Bool { didSet { save(calendarMediumShowsAgenda, "calendarMediumShowsAgenda") } }
     func widgetLayout(forDisplay key: String) -> WidgetLayout { widgetLayouts[key] ?? .default }
     func setWidgetLayout(_ layout: WidgetLayout, forDisplay key: String) { widgetLayouts[key] = layout }
@@ -124,6 +126,7 @@ final class AppSettings {
         calendarFirstWeekday = v("calendarFirstWeekday", 0)
         hiddenCalendarIDs = defaults.stringArray(forKey: "settings.hiddenCalendarIDs") ?? []
         calendarMediumShowsAgenda = v("calendarMediumShowsAgenda", false)
+        taskListID = v("taskListID", "")
         widgetRows = v("widgetRows", 2)
         widgetLayouts = (defaults.data(forKey: "settings.widgetLayouts"))
             .flatMap { try? JSONDecoder().decode([String: WidgetLayout].self, from: $0) } ?? [:]

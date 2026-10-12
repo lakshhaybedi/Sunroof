@@ -59,6 +59,15 @@ final class NoteStore {
     }
 
     /// Called on every keystroke (no text comparison — that's O(n) for huge notes).
+    /// Creates `filename` with `text` if it doesn't exist (used for Tasks.md).
+    func ensureNote(_ filename: String, text: String) {
+        guard note(filename) == nil else { return }
+        ensureFolder()
+        notes.append(Note(filename: filename, text: text, modified: .now))
+        write(filename, text)
+        sort()
+    }
+
     func update(_ filename: String, text: String, from writer: UUID? = nil) {
         if let i = notes.firstIndex(where: { $0.filename == filename }) {
             notes[i].text = text
