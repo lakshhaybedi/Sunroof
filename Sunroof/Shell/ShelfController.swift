@@ -8,8 +8,8 @@ final class ShelfController {
     private let panel = ShelfPanel()
     private let root = NSView()
     private let columns = NSView()
-    private let band = NSView() // widget band under the columns
-    private var bandHeight: NSLayoutConstraint!
+    /// Widgets float under the shelf in their own transparent window, so they never take space from the columns.
+    private let tray = ShelfPanel()
     static let widgetCell: CGFloat = 158 // 150 pt tile + 8 pt gap
     private var materialView: NSView?
     private var monitors: [Any] = []
@@ -46,20 +46,15 @@ final class ShelfController {
         handle.translatesAutoresizingMaskIntoConstraints = false
         applyAppearance()
         let body = NSView()
-        band.translatesAutoresizingMaskIntoConstraints = false
         body.addSubview(columns)
-        body.addSubview(band)
         body.addSubview(handle)
-        bandHeight = band.heightAnchor.constraint(equalToConstant: 0)
+        tray.hasShadow = false // each tile casts its own
+        tray.becomesKeyOnlyIfNeeded = true // buttons don't take focus from the shelf; text fields do
         NSLayoutConstraint.activate([
             columns.topAnchor.constraint(equalTo: body.topAnchor),
             columns.leadingAnchor.constraint(equalTo: body.leadingAnchor),
             columns.trailingAnchor.constraint(equalTo: body.trailingAnchor),
-            columns.bottomAnchor.constraint(equalTo: band.topAnchor),
-            band.leadingAnchor.constraint(equalTo: body.leadingAnchor),
-            band.trailingAnchor.constraint(equalTo: body.trailingAnchor),
-            band.bottomAnchor.constraint(equalTo: handle.topAnchor),
-            bandHeight,
+            columns.bottomAnchor.constraint(equalTo: handle.topAnchor),
             handle.leadingAnchor.constraint(equalTo: body.leadingAnchor),
             handle.trailingAnchor.constraint(equalTo: body.trailingAnchor),
             handle.bottomAnchor.constraint(equalTo: body.bottomAnchor),
@@ -72,18 +67,28 @@ final class ShelfController {
 
     private var body: NSView!
 
-    /// The widget band's content (SwiftUI host); its height follows the Widgets settings.
+    /// The widget band's content (SwiftUI host), shown in the tray under the shelf.
     func setWidgetBand(_ view: NSView) {
-        band.subviews.forEach { $0.removeFromSuperview() }
-        view.frame = band.bounds
-        view.autoresizingMask = [.width, .height]
-        band.addSubview(view)
-        updateBandHeight()
+        tray.contentView = view
+        updateTray()
     }
 
-    private func updateBandHeight() {
-        let rows = CGFloat(max(1, min(settings.widgetRows, 4)))
-        bandHeight.constant = settings.showWidgets && !band.subviews.isEmpty ? rows * Self.widgetCell + 14 : 0
+    private var showsTray: Bool { settings.showWidgets && tray.contentView != nil }
+
+    /// Directly under the shelf, as wide as it; never below the bottom of the screen.
+    private func trayFrame(under shelf: CGRect) -> CGRect {
+        let height = CGFloat(max(1, min(settings.widgetRows, 4))) * Self.widgetCell + 24 // grip + room for tile shadows
+        let floor = screen?.visibleFrame.minY ?? 0
+        return CGRect(x: shelf.minX, y: max(floor, shelf.minY - height - 4), width: shelf.width, height: height)
+    }
+
+    /// Follows the shelf's frame and the Widgets settings while the shelf is open.
+    private func updateTray() {
+        tray.appearance = panel.appearance
+        guard isVisible, showsTray else { tray.orderOut(nil); return }
+        tray.setFrame(trayFrame(under: panel.frame), display: true)
+        tray.alphaValue = 1
+        tray.orderFrontRegardless()
     }
 
     /// A view pinned over the top of the columns (the search overlay); nil removes it.
@@ -125,10 +130,22 @@ final class ShelfController {
         panel.alphaValue = reduceMotion ? 0 : 1
         panel.orderFrontRegardless()
         panel.makeKey()
+        if showsTray {
+            tray.appearance = panel.appearance
+            tray.setFrame(trayFrame(under: final), display: false)
+            tray.alphaValue = 0
+            tray.orderFrontRegardless()
+        }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.18
             ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
             if reduceMotion { panel.animator().alphaValue = 1 } else { panel.animator().setFrame(final, display: true) }
+        }
+        if showsTray {
+            NSAnimationContext.runAnimationGroup { ctx in // float in just after the shelf lands
+                ctx.duration = 0.25
+                tray.animator().alphaValue = 1
+            }
         }
         installMonitors()
         if let focus { split?.focus(focus) }
@@ -164,10 +181,12 @@ final class ShelfController {
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             if reduceMotion { panel.animator().alphaValue = 0 }
             else { panel.animator().setFrame(frame.offsetBy(dx: 0, dy: frame.height), display: true) }
+            tray.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.hideGeneration == generation else { completion?(); return }
                 self.panel.orderOut(nil)
+                self.tray.orderOut(nil)
                 self.hideGeneration = 0
                 completion?()
             }
@@ -190,6 +209,7 @@ final class ShelfController {
         let start = resizeStart ?? panel.frame
         let f = ShelfGeometry.frame(height: start.height + dy, screenFrame: screen.frame, visibleFrame: screen.visibleFrame)
         panel.setFrame(f, display: true)
+        if showsTray { tray.setFrame(trayFrame(under: f), display: true) }
         if ended {
             settings.setHeight(f.height, forDisplay: ShelfGeometry.displayKey(screen))
             resizeStart = nil
@@ -204,7 +224,7 @@ final class ShelfController {
             MainActor.assumeIsolated { self?.hide() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard let self, e.window === self.panel else { return e } // keys in Settings/onboarding aren't ours
+            guard let self, let window = e.window, window === self.panel || window === self.tray else { return e } // keys in Settings/onboarding aren't ours
             let flags = e.modifierFlags.intersection([.command, .shift, .option, .control])
             if flags == [.command, .shift], e.charactersIgnoringModifiers?.lowercased() == "f" { // ⌘⇧F (any layout)
                 MainActor.assumeIsolated { self.onGlobalSearch?() }
@@ -214,8 +234,8 @@ final class ShelfController {
             MainActor.assumeIsolated {
                 if self.escapeHandlers.contains(where: { $0() }) {
                     // handled (e.g. search overlay closed)
-                } else if self.panel.firstResponder is NSTextView { // end text editing first
-                    self.panel.makeFirstResponder(nil)
+                } else if window.firstResponder is NSTextView { // end text editing first
+                    window.makeFirstResponder(nil)
                 } else {
                     self.hide()
                 }
@@ -291,7 +311,7 @@ final class ShelfController {
             Task { @MainActor in
                 guard let self else { return }
                 self.applyAppearance()
-                self.updateBandHeight()
+                self.updateTray()
                 self.applyMaterial()
                 self.rebuildColumnsIfNeeded()
                 self.observeSettings()

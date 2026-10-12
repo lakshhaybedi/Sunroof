@@ -67,11 +67,13 @@ struct WidgetBand: View {
         let kind = p.item.kind
         return content(kind, p.item.size)
             .frame(width: CGFloat(w) * cell - 8, height: CGFloat(h) * cell - 8)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.primary.opacity(0.06)))
+            .background(BehindWindowBlur()) // plain blur of whatever is under the shelf, no tint
             .overlay(RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.accentColor.opacity(dropTarget == kind ? 0.8 : 0), lineWidth: 2))
+                .stroke(dropTarget == kind ? Color.accentColor.opacity(0.8) : Color.white.opacity(0.12),
+                        lineWidth: dropTarget == kind ? 2 : 0.5))
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .contentShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
             .offset(x: CGFloat(p.x) * cell, y: CGFloat(p.y) * cell)
             .draggable(WidgetDrag(kind: kind)) {
                 Label(kind.name, systemImage: kind.symbol).padding(8).background(.regularMaterial, in: .rect(cornerRadius: 8))
@@ -153,4 +155,16 @@ struct WidgetPlaceholder: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+/// Blurs the desktop/windows behind the (transparent) widget tray; always "active" so it doesn't grey out.
+private struct BehindWindowBlur: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = .popover
+        v.blendingMode = .behindWindow
+        v.state = .active
+        return v
+    }
+    func updateNSView(_ v: NSVisualEffectView, context: Context) {}
 }

@@ -147,6 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let band = NSHostingView(rootView: WidgetBand(host: host) { [weak self] kind, size in
             self?.widgetView(kind, size) ?? AnyView(WidgetPlaceholder(kind: kind))
         })
+        band.sizingOptions = [] // the tray's size comes from the shelf, not from SwiftUI
         shelf.setWidgetBand(band)
         shelf.onShow.append { [weak self] in
             guard let self, let key = self.shelf.displayKey else { return }
