@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5
+
+- **Clean Up Note** (⌘⇧K, the ✨ button, or right-click a note): turns plain-text bullets, numbered lists, checkboxes, short headings and `Label: value` lines into tidy markdown. One ⌘Z undoes it.
+- **Widgets**: a frosted, untinted blur now sits behind the whole widget strip.
+- **Files shortcuts**: ⌘⌫ moves to the Trash, ⌘A selects all, and ⌘C copies the selected files. In Clipboard, Backspace deletes the selected clip.
+- `scripts/import-unclutter-notes.py` copies your Unclutter notes into Sunroof.
+
 ## 0.2.4
 
 - **Permissions**: the Calendar, Reminders and Location dialogs no longer open hidden behind the shelf. Sunroof closes the shelf first, and widgets show your data as soon as you allow access.
