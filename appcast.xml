@@ -3,6 +3,23 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.9</title>
+      <pubDate>Mon, 12 Oct 2026 13:00:48 -0000</pubDate>
+      <sparkle:version>0.2.9</sparkle:version>
+      <sparkle:shortVersionString>0.2.9</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **System Stats**:
+  - Shows temperatures (chip, SSD and battery, plus GPU on Macs that report it) and GPU usage.
+  - New Large size with big temperature tiles.
+  - Cleaner Medium layout with compact chips.
+  - Turn GPU and Temperatures on or off in *Settings › Widgets*.
+- **Clipboard**: every row is the same height, with text left-aligned and vertically centred.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.9/Sunroof-0.2.9.dmg" type="application/octet-stream" sparkle:edSignature="PKj6+dVjGUSsdHcLD2eIYtzOnG1i/rRmZG3TDnwE4hz6fWcaLYv5a3XJxaHNjSdyhUbR7qpyvrdarCR2mIM7Cw==" length="3714787" />
+    </item>
+    <item>
       <title>Sunroof 0.2.8</title>
       <pubDate>Mon, 12 Oct 2026 12:27:48 -0000</pubDate>
       <sparkle:version>0.2.8</sparkle:version>
