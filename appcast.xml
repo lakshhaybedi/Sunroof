@@ -3,6 +3,28 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.8</title>
+      <pubDate>Mon, 12 Oct 2026 12:27:48 -0000</pubDate>
+      <sparkle:version>0.2.8</sparkle:version>
+      <sparkle:shortVersionString>0.2.8</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Smoother scrolling**: the widget strip uses a single blur instead of stacking one blur per widget.
+- **Smaller app**: 7.6 MB instead of 14 MB (unused code is removed and debug symbols are stripped).
+- **Security**:
+  - Clipboard history files are private to your account.
+  - Searching never matches inside password clips.
+  - ⏎-to-paste only types into the app you came from.
+  - Note links can&#x27;t run files or trigger other apps.
+  - Note images never load from the web.
+  - The app now uses the hardened runtime.
+- **System Stats**: choose what it shows (CPU, memory, battery, disk, network) in *Settings › Widgets*.
+- **Resize and menu bar**: the pill above the widgets resizes the shelf, and clicking the menu bar icon while the shelf is open now closes it.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.8/Sunroof-0.2.8.dmg" type="application/octet-stream" sparkle:edSignature="QhKwJ0HAi0CfyqRHoLrf5uuzA6wkGeSecUqPOFiSliqJiLlFpneV29FRALNKKbqBYIIsUIzpUg4MxMkUQ4z5Aw==" length="3685483" />
+    </item>
+    <item>
       <title>Sunroof 0.2.7</title>
       <pubDate>Mon, 12 Oct 2026 08:07:41 -0000</pubDate>
       <sparkle:version>0.2.7</sparkle:version>
