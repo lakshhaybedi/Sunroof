@@ -63,8 +63,11 @@ struct WidgetBand: View {
                 LinearGradient(colors: [c.opacity(0.32), c.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
             })
             .frame(width: r.width - 8, height: r.height - 8)
+            // A light card on the strip's frosted blur. (One blur for the whole strip: a live glass per tile on top of
+            // it made every frame wait on the compositor, and scrolling in the shelf stuttered.)
+            .background(RoundedRectangle(cornerRadius: 18).fill(Color.primary.opacity(0.07)))
+            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
             .clipShape(RoundedRectangle(cornerRadius: 18))
-            .glassEffect(.regular, in: .rect(cornerRadius: 18)) // the same Liquid Glass as the shelf: blurs what's behind
             .contentShape(RoundedRectangle(cornerRadius: 18))
             .contextMenu {
                 Menu("Size") {
@@ -90,7 +93,7 @@ struct WidgetBand: View {
                     withAnimation(.smooth(duration: 0.25)) { dragging = nil; dragOffset = .zero }
                 })
             .scaleEffect(lifted ? 1.04 : 1)
-            .shadow(color: .black.opacity(lifted ? 0.3 : 0), radius: 16, y: 8)
+            .shadow(color: .black.opacity(lifted ? 0.3 : 0), radius: lifted ? 16 : 0, y: lifted ? 8 : 0) // no shadow pass at rest
             .offset(x: r.minX + (lifted ? dragOffset.width : 0), y: r.minY + (lifted ? dragOffset.height : 0))
             .zIndex(lifted ? 1 : 0)
     }
