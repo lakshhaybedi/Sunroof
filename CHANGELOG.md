@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- **Clipboard**: click anywhere on a clip to copy it. It slides smoothly to the top, and a "Copied" note confirms it.
+- **Files**: dragging a file to the top of the screen opens the shelf as soon as it reaches the menu bar, so Mission Control no longer gets in the way.
+- **Files**: files dropped from a folder Sunroof can't change (such as the Desktop without Files & Folders access) are copied instead of failing.
+- **Quick Look**: while previewing, the arrow keys move to the previous or next file, and Space closes the preview.
+
 ## 0.2.0
 
 - **Widgets**: a band of widgets along the bottom of the shelf: **Calendar** (month view with an agenda), **Tasks** (Apple Reminders, or Sunroof's own list kept in `Tasks.md`), **Music** (Apple Music and Spotify), **Weather** (Open-Meteo, a city you pick or your location) and **System Stats** (CPU, memory, battery, disk, network).
