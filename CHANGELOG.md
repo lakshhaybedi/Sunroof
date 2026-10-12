@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.10
+
+- **Far less GPU while the shelf is open**: System Stats no longer animates every change, and only redraws when a shown value changes. Free disk space is checked once a minute in the background. Before, an idle open shelf kept the GPU at around 70%.
+- **Hidden text in notes**: `||secret||` shows as a dark field. Hover over it to see an eye; click the eye to reveal and select the text, ready to copy. It hides again as soon as you click elsewhere.
+
 ## 0.2.9
 
 - **System Stats**:
