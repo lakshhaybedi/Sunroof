@@ -8,6 +8,9 @@ final class ShelfController {
     private let panel = ShelfPanel()
     private let root = NSView()
     private let columns = NSView()
+    private let band = NSView() // widget band under the columns
+    private var bandHeight: NSLayoutConstraint!
+    static let widgetCell: CGFloat = 158 // 150 pt tile + 8 pt gap
     private var materialView: NSView?
     private var monitors: [Any] = []
     private var screen: NSScreen?
@@ -43,13 +46,20 @@ final class ShelfController {
         handle.translatesAutoresizingMaskIntoConstraints = false
         applyAppearance()
         let body = NSView()
+        band.translatesAutoresizingMaskIntoConstraints = false
         body.addSubview(columns)
+        body.addSubview(band)
         body.addSubview(handle)
+        bandHeight = band.heightAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
             columns.topAnchor.constraint(equalTo: body.topAnchor),
             columns.leadingAnchor.constraint(equalTo: body.leadingAnchor),
             columns.trailingAnchor.constraint(equalTo: body.trailingAnchor),
-            columns.bottomAnchor.constraint(equalTo: handle.topAnchor),
+            columns.bottomAnchor.constraint(equalTo: band.topAnchor),
+            band.leadingAnchor.constraint(equalTo: body.leadingAnchor),
+            band.trailingAnchor.constraint(equalTo: body.trailingAnchor),
+            band.bottomAnchor.constraint(equalTo: handle.topAnchor),
+            bandHeight,
             handle.leadingAnchor.constraint(equalTo: body.leadingAnchor),
             handle.trailingAnchor.constraint(equalTo: body.trailingAnchor),
             handle.bottomAnchor.constraint(equalTo: body.bottomAnchor),
@@ -61,6 +71,20 @@ final class ShelfController {
     }
 
     private var body: NSView!
+
+    /// The widget band's content (SwiftUI host); its height follows the Widgets settings.
+    func setWidgetBand(_ view: NSView) {
+        band.subviews.forEach { $0.removeFromSuperview() }
+        view.frame = band.bounds
+        view.autoresizingMask = [.width, .height]
+        band.addSubview(view)
+        updateBandHeight()
+    }
+
+    private func updateBandHeight() {
+        let rows = CGFloat(max(1, min(settings.widgetRows, 4)))
+        bandHeight.constant = settings.showWidgets && !band.subviews.isEmpty ? rows * Self.widgetCell + 14 : 0
+    }
 
     /// A view pinned over the top of the columns (the search overlay); nil removes it.
     func setOverlay(_ view: NSView?) {
@@ -261,10 +285,13 @@ final class ShelfController {
             _ = settings.shelfTint
             _ = settings.panelOrder
             _ = settings.enabledPanels
+            _ = settings.showWidgets
+            _ = settings.widgetRows
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
                 self.applyAppearance()
+                self.updateBandHeight()
                 self.applyMaterial()
                 self.rebuildColumnsIfNeeded()
                 self.observeSettings()

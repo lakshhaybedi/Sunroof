@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var notes: NotesController!
     private var search: GlobalSearch!
     private var stickies: StickyManager!
+    private(set) var widgets: WidgetHost!
     private let searchRoot = OSAllocatedUnfairLock(initialState: URL(fileURLWithPath: "/"))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -48,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setUpFiles()
         setUpNotes()
         setUpSearch()
+        setUpWidgets()
         edgeMonitor = EdgeTriggerMonitor(settings: settings) { [weak self] decision in
             self?.handle(decision)
         }
@@ -136,6 +138,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         stickies = StickyManager(store: noteStore, settings: settings)
         stickies.restore()
+    }
+
+    private func setUpWidgets() {
+        widgets = WidgetHost(settings: settings) { [weak self] kind in self?.makeWidgetModel(kind) }
+        let host = widgets!
+        let band = NSHostingView(rootView: WidgetBand(host: host) { [weak self] kind, size in
+            self?.widgetView(kind, size) ?? AnyView(WidgetPlaceholder(kind: kind))
+        })
+        shelf.setWidgetBand(band)
+        shelf.onShow.append { [weak self] in
+            guard let self, let key = self.shelf.displayKey else { return }
+            host.displayKey = key
+            host.start()
+        }
+        shelf.onHide.append { host.stop() }
+    }
+
+    /// Each widget's live model (filled in per widget).
+    private func makeWidgetModel(_ kind: WidgetKind) -> WidgetModel? {
+        switch kind {
+        default: nil
+        }
+    }
+
+    private func widgetView(_ kind: WidgetKind, _ size: WidgetSize) -> AnyView {
+        switch kind {
+        default: AnyView(WidgetPlaceholder(kind: kind))
+        }
     }
 
     private func setUpSearch() {

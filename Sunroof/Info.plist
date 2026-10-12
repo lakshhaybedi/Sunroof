@@ -25,6 +25,11 @@
 			<key>UTTypeDescription</key><string>Sunroof column</string>
 			<key>UTTypeConformsTo</key><array><string>public.data</string></array>
 		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key><string>com.lakshhaybedi.sunroof.widget</string>
+			<key>UTTypeDescription</key><string>Sunroof widget</string>
+			<key>UTTypeConformsTo</key><array><string>public.data</string></array>
+		</dict>
 	</array>
 	<key>NSHumanReadableCopyright</key><string>© 2026 Lakshhay Bedi. MIT License.</string>
 </dict>
