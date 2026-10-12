@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.11
+
+- **Lighter opening**: Files thumbnails are kept between opens instead of being redrawn every time.
+- **Reduce effects** (*Settings › Appearance*): a solid shelf and widget strip instead of Liquid Glass and blur, which is easier on the GPU.
+- **System Stats**: GPU now shows how busy the GPU really is. Before, it showed load at the GPU's current clock speed, which read 60–70% even when the GPU was barely working.
+
 ## 0.2.10
 
 - **Far less GPU while the shelf is open**: System Stats no longer animates every change, and only redraws when a shown value changes. Free disk space is checked once a minute in the background. Before, an idle open shelf kept the GPU at around 70%.
