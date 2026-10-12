@@ -3,6 +3,19 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.10</title>
+      <pubDate>Mon, 12 Oct 2026 13:19:14 -0000</pubDate>
+      <sparkle:version>0.2.10</sparkle:version>
+      <sparkle:shortVersionString>0.2.10</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Far less GPU while the shelf is open**: System Stats no longer animates every change, and only redraws when a shown value changes. Free disk space is checked once a minute in the background. Before, an idle open shelf kept the GPU at around 70%.
+- **Hidden text in notes**: `||secret||` shows as a dark field. Hover over it to see an eye; click the eye to reveal and select the text, ready to copy. It hides again as soon as you click elsewhere.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.10/Sunroof-0.2.10.dmg" type="application/octet-stream" sparkle:edSignature="1q8SSYhFpuGGgpBTUzlQs0SOS2jN22OocYJU5kx3YMIuf00x/PQ20aIIfcAeWWpNNsh1C9zNqSp9YHPEsiqrAw==" length="3723059" />
+    </item>
+    <item>
       <title>Sunroof 0.2.9</title>
       <pubDate>Mon, 12 Oct 2026 13:00:48 -0000</pubDate>
       <sparkle:version>0.2.9</sparkle:version>
