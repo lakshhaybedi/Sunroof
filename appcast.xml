@@ -3,6 +3,20 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.7</title>
+      <pubDate>Mon, 12 Oct 2026 08:07:41 -0000</pubDate>
+      <sparkle:version>0.2.7</sparkle:version>
+      <sparkle:shortVersionString>0.2.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Calendar and Reminders**: widgets show your data as soon as you allow access. Before, they kept asking again until Sunroof restarted.
+- **Music player**: a thinner progress bar, a ♥ to favourite in Apple Music, shuffle, and 🔍 search (searches your Music library and plays the song you pick; with Spotify, opens Spotify&#x27;s search).
+- **Widgets**: even padding around the widget strip.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.7/Sunroof-0.2.7.dmg" type="application/octet-stream" sparkle:edSignature="jhgMtLRh4O+L+y54eBT5kpFT6Bmq7G0p/MVJXt4fVyVNQ5R1hxT7tUzLn9dNbsXRt0xaxOHCvqTXRW+jPlFLBw==" length="4946761" />
+    </item>
+    <item>
       <title>Sunroof 0.2.6</title>
       <pubDate>Mon, 12 Oct 2026 07:43:32 -0000</pubDate>
       <sparkle:version>0.2.6</sparkle:version>
