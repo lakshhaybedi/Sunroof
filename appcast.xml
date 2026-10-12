@@ -3,6 +3,21 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.1</title>
+      <pubDate>Mon, 12 Oct 2026 05:47:24 -0000</pubDate>
+      <sparkle:version>0.2.1</sparkle:version>
+      <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Clipboard**: click anywhere on a clip to copy it. It slides smoothly to the top, and a &quot;Copied&quot; note confirms it.
+- **Files**: dragging a file to the top of the screen opens the shelf as soon as it reaches the menu bar, so Mission Control no longer gets in the way.
+- **Files**: files dropped from a folder Sunroof can&#x27;t change (such as the Desktop without Files &amp; Folders access) are copied instead of failing.
+- **Quick Look**: while previewing, the arrow keys move to the previous or next file, and Space closes the preview.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.1/Sunroof-0.2.1.dmg" type="application/octet-stream" sparkle:edSignature="174HQBUuGW+FvBXBI8QKvaL491rAfvyNcHOifkGDfxdd2EdwD6VbFlntcEA26NQ7O7rOR8RBdATIQqXP6c13Dw==" length="4761863" />
+    </item>
+    <item>
       <title>Sunroof 0.2.0</title>
       <pubDate>Mon, 12 Oct 2026 05:37:29 -0000</pubDate>
       <sparkle:version>0.2.0</sparkle:version>
