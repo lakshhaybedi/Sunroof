@@ -81,6 +81,16 @@ final class ShelfController {
     /// The widget band's content (SwiftUI host), shown in the strip under the shelf.
     func setWidgetBand(_ view: NSView) {
         tray.subviews.forEach { $0.removeFromSuperview() }
+        // Frosted, untinted strip behind the widgets (blurs whatever is under the shelf); bottom corners rounded.
+        let frost = NSVisualEffectView(frame: tray.bounds)
+        frost.material = .fullScreenUI
+        frost.blendingMode = .behindWindow
+        frost.state = .active
+        frost.autoresizingMask = [.width, .height]
+        frost.wantsLayer = true
+        frost.layer?.cornerRadius = 18
+        frost.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        tray.addSubview(frost)
         view.frame = tray.bounds
         view.autoresizingMask = [.width, .height]
         tray.addSubview(view)
