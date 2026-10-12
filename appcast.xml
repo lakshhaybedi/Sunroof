@@ -3,6 +3,21 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.5</title>
+      <pubDate>Mon, 12 Oct 2026 07:25:44 -0000</pubDate>
+      <sparkle:version>0.2.5</sparkle:version>
+      <sparkle:shortVersionString>0.2.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Clean Up Note** (⌘⇧K, the ✨ button, or right-click a note): turns plain-text bullets, numbered lists, checkboxes, short headings and `Label: value` lines into tidy markdown. One ⌘Z undoes it.
+- **Widgets**: a frosted, untinted blur now sits behind the whole widget strip.
+- **Files shortcuts**: ⌘⌫ moves to the Trash, ⌘A selects all, and ⌘C copies the selected files. In Clipboard, Backspace deletes the selected clip.
+- `scripts/import-unclutter-notes.py` copies your Unclutter notes into Sunroof.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.5/Sunroof-0.2.5.dmg" type="application/octet-stream" sparkle:edSignature="s3CMu0ALGp1v38wfMm1k04k9D6pGOlyz/qN37YPjpZBWEbfFgugbc4ABdMxW8fFDV2FD69CIHpnigWkZBohYBA==" length="4839260" />
+    </item>
+    <item>
       <title>Sunroof 0.2.4</title>
       <pubDate>Mon, 12 Oct 2026 06:52:55 -0000</pubDate>
       <sparkle:version>0.2.4</sparkle:version>
