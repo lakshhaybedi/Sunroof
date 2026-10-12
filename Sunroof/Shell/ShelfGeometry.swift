@@ -12,8 +12,9 @@ enum ShelfGeometry {
     }
 
     /// Full screen width, top flush with the bottom of the menu bar (or the screen top when it's hidden).
-    static func frame(height: CGFloat, screenFrame: CGRect, visibleFrame: CGRect) -> CGRect {
-        let h = clampHeight(height, visibleFrame: visibleFrame)
+    /// `reserve` is kept free below the shelf (the widgets).
+    static func frame(height: CGFloat, screenFrame: CGRect, visibleFrame: CGRect, reserve: CGFloat = 0) -> CGRect {
+        let h = min(clampHeight(height, visibleFrame: visibleFrame), max(minHeight, visibleFrame.height - reserve))
         return CGRect(x: screenFrame.minX, y: visibleFrame.maxY - h, width: screenFrame.width, height: h)
     }
 

@@ -28,6 +28,20 @@ struct WeatherWidget: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(LinearGradient(colors: sky, startPoint: .top, endPoint: .bottom))
+    }
+
+    /// Sky colours for the current conditions (WMO codes): blue days, deep nights, grey cloud, dark storms.
+    private var sky: [Color] {
+        guard let c = model.forecast?.current else { return [Color.blue.opacity(0.3), Color.blue.opacity(0.06)] }
+        let (top, bottom): (Color, Color) = switch c.code {
+        case 0, 1: c.isDay ? (.blue, .cyan) : (.indigo, .black)
+        case 2, 3, 45, 48: c.isDay ? (.gray, .blue) : (.gray, .indigo)
+        case 95...: (.purple, .indigo)
+        case 71...77, 85, 86: (.white, .cyan)
+        default: c.isDay ? (.teal, .gray) : (.indigo, .gray) // drizzle and rain
+        }
+        return [top.opacity(0.45), bottom.opacity(0.12)]
     }
 
     private func t(_ c: Double) -> String { OpenMeteo.format(c, fahrenheit: model.fahrenheit) }

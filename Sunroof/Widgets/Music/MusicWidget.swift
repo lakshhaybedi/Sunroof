@@ -18,7 +18,17 @@ struct MusicWidget: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { backdrop }
         .onHover { hovering = $0 }
+    }
+
+    /// The album art, blurred, behind the widget (pink when nothing's playing).
+    @ViewBuilder private var backdrop: some View {
+        if let data = model.current?.artwork, let image = NSImage(data: data) {
+            Image(nsImage: image).resizable().scaledToFill().blur(radius: 30).opacity(0.55)
+        } else {
+            LinearGradient(colors: [Color.pink.opacity(0.3), Color.purple.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
     }
 
     private func artwork(_ np: NowPlaying, side: CGFloat) -> some View {

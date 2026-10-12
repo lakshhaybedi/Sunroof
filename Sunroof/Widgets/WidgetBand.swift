@@ -1,13 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
-
-/// Drag payload for a widget tile (private type: can't be dropped as text elsewhere).
-struct WidgetDrag: Codable, Transferable {
-    let kind: WidgetKind
-    static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: UTType(exportedAs: "com.lakshhaybedi.sunroof.widget"))
-    }
-}
 
 /// The snap-grid band of widgets at the bottom of the shelf.
 struct WidgetBand: View {
@@ -16,7 +7,9 @@ struct WidgetBand: View {
     let content: (WidgetKind, WidgetSize) -> AnyView
     @State private var showGallery = false
     @State private var dragRows: Int?
-    @State private var dropTarget: WidgetKind?
+    /// The tile being dragged to a new place, and how far it has moved.
+    @State private var dragging: WidgetKind?
+    @State private var dragOffset: CGSize = .zero
 
     private let cell = ShelfController.widgetCell
     private var rows: Int { dragRows ?? max(1, min(host.settings.widgetRows, 4)) }
@@ -26,13 +19,17 @@ struct WidgetBand: View {
             rowsGrip
             GeometryReader { geo in
                 let columns = max(1, Int((geo.size.width - 8) / cell))
+                // Cells stretch so the widgets fill the full width.
+                let grid = Grid(width: (geo.size.width - 8) / CGFloat(columns), height: cell)
                 let packed = host.layout.pack(columns: columns, rows: rows)
                 ZStack(alignment: .topLeading) {
-                    ForEach(packed.placed, id: \.item.kind) { p in tile(p) }
-                    addButton(columns: columns, packed: packed)
+                    ForEach(packed.placed, id: \.item.kind) { p in tile(p, grid: grid, placed: packed.placed) }
+                    addButton(columns: columns, packed: packed, grid: grid)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .coordinateSpace(.named("widgets"))
                 .padding(.leading, 8)
+                .animation(.smooth(duration: 0.25), value: host.layout)
                 .onChange(of: columns, initial: true) { host.restartIfRunning(columns: columns) }
             }
         }
@@ -62,28 +59,25 @@ struct WidgetBand: View {
             .help("Drag to add or remove widget rows")
     }
 
-    private func tile(_ p: WidgetPlacement) -> some View {
+    private struct Grid { let width: CGFloat; let height: CGFloat }
+
+    private func rect(_ p: WidgetPlacement, _ g: Grid) -> CGRect {
         let (w, h) = p.item.size.span
+        return CGRect(x: CGFloat(p.x) * g.width, y: CGFloat(p.y) * g.height, width: CGFloat(w) * g.width, height: CGFloat(h) * g.height)
+    }
+
+    private func tile(_ p: WidgetPlacement, grid: Grid, placed: [WidgetPlacement]) -> some View {
         let kind = p.item.kind
+        let r = rect(p, grid)
+        let lifted = dragging == kind
         return content(kind, p.item.size)
-            .frame(width: CGFloat(w) * cell - 8, height: CGFloat(h) * cell - 8)
-            .background(BehindWindowBlur()) // plain blur of whatever is under the shelf, no tint
-            .overlay(RoundedRectangle(cornerRadius: 16)
-                .stroke(dropTarget == kind ? Color.accentColor.opacity(0.8) : Color.white.opacity(0.12),
-                        lineWidth: dropTarget == kind ? 2 : 0.5))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .contentShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
-            .offset(x: CGFloat(p.x) * cell, y: CGFloat(p.y) * cell)
-            .draggable(WidgetDrag(kind: kind)) {
-                Label(kind.name, systemImage: kind.symbol).padding(8).background(.regularMaterial, in: .rect(cornerRadius: 8))
-            }
-            .dropDestination(for: WidgetDrag.self) { items, _ in
-                guard let moved = items.first?.kind, moved != kind,
-                      let target = host.layout.items.firstIndex(where: { $0.kind == kind }) else { return false }
-                host.layout.move(moved, toIndex: target)
-                return true
-            } isTargeted: { dropTarget = $0 ? kind : (dropTarget == kind ? nil : dropTarget) }
+            .background(kind.tint.map { c in
+                LinearGradient(colors: [c.opacity(0.32), c.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            })
+            .frame(width: r.width - 8, height: r.height - 8)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .glassEffect(.regular, in: .rect(cornerRadius: 18)) // the same Liquid Glass as the shelf: blurs what's behind
+            .contentShape(RoundedRectangle(cornerRadius: 18))
             .contextMenu {
                 Menu("Size") {
                     ForEach(kind.allowedSizes, id: \.self) { size in
@@ -97,23 +91,37 @@ struct WidgetBand: View {
                 Divider()
                 Button("Remove Widget", role: .destructive) { host.layout.remove(kind) }
             }
+            // Drag a widget onto another to take its place; the rest reflow.
+            .gesture(DragGesture(minimumDistance: 8, coordinateSpace: .named("widgets"))
+                .onChanged { v in dragging = kind; dragOffset = v.translation }
+                .onEnded { v in
+                    if let target = placed.first(where: { $0.item.kind != kind && rect($0, grid).contains(v.location) }),
+                       let index = host.layout.items.firstIndex(where: { $0.kind == target.item.kind }) {
+                        host.layout.move(kind, toIndex: index)
+                    }
+                    withAnimation(.smooth(duration: 0.25)) { dragging = nil; dragOffset = .zero }
+                })
+            .scaleEffect(lifted ? 1.04 : 1)
+            .shadow(color: .black.opacity(lifted ? 0.3 : 0), radius: 16, y: 8)
+            .offset(x: r.minX + (lifted ? dragOffset.width : 0), y: r.minY + (lifted ? dragOffset.height : 0))
+            .zIndex(lifted ? 1 : 0)
     }
 
     /// ＋ in the first free cell (or the band's top-right corner when full) opens the gallery.
-    private func addButton(columns: Int, packed: (placed: [WidgetPlacement], hidden: [WidgetItem])) -> some View {
+    private func addButton(columns: Int, packed: (placed: [WidgetPlacement], hidden: [WidgetItem]), grid: Grid) -> some View {
         let spot = firstFreeCell(columns: columns, placed: packed.placed)
         return Button { showGallery = true } label: {
             Image(systemName: "plus").font(.title2).foregroundStyle(.secondary)
-                .frame(width: spot == nil ? 28 : cell - 8, height: spot == nil ? 28 : cell - 8)
-                .background(RoundedRectangle(cornerRadius: spot == nil ? 8 : 16)
+                .frame(width: spot == nil ? 28 : grid.width - 8, height: spot == nil ? 28 : cell - 8)
+                .background(RoundedRectangle(cornerRadius: spot == nil ? 8 : 18)
                     .strokeBorder(Color.secondary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
         }
         .buttonStyle(.hit)
         .help("Add a widget")
-        .offset(x: spot.map { CGFloat($0.0) * cell } ?? CGFloat(columns) * cell - 36,
+        .popover(isPresented: $showGallery, arrowEdge: .top) { gallery } // anchored to the ＋ itself, opening above it
+        .offset(x: spot.map { CGFloat($0.0) * grid.width } ?? CGFloat(columns) * grid.width - 36,
                 y: spot.map { CGFloat($0.1) * cell } ?? 0)
         .opacity(host.layout.available.isEmpty && spot == nil ? 0 : 1)
-        .popover(isPresented: $showGallery, arrowEdge: .top) { gallery }
     }
 
     private func firstFreeCell(columns: Int, placed: [WidgetPlacement]) -> (Int, Int)? {
@@ -157,14 +165,14 @@ struct WidgetPlaceholder: View {
     }
 }
 
-/// Blurs the desktop/windows behind the (transparent) widget tray; always "active" so it doesn't grey out.
-private struct BehindWindowBlur: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let v = NSVisualEffectView()
-        v.material = .popover
-        v.blendingMode = .behindWindow
-        v.state = .active
-        return v
+extension WidgetKind {
+    /// A gentle wash of colour per widget (weather and music colour themselves from their content).
+    var tint: Color? {
+        switch self {
+        case .calendar: .red
+        case .tasks: .orange
+        case .stats: .teal
+        case .weather, .music: nil
+        }
     }
-    func updateNSView(_ v: NSVisualEffectView, context: Context) {}
 }

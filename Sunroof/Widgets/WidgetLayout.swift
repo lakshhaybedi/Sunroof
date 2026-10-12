@@ -29,7 +29,9 @@ struct WidgetLayout: Codable, Equatable {
             guard x + w <= columns, y + h <= rows else { return false }
             return (y..<y + h).allSatisfy { r in (x..<x + w).allSatisfy { !used[r][$0] } }
         }
-        for item in items {
+        for var item in items {
+            // Too tall for the band (a Large in one row): show it at the biggest size that fits.
+            if item.size.span.h > rows, let fit = item.kind.allowedSizes.last(where: { $0.span.h <= rows }) { item.size = fit }
             let (w, h) = item.size.span
             var spot: (Int, Int)?
             search: for y in 0..<rows { for x in 0..<columns where free(x, y, w, h) { spot = (x, y); break search } }

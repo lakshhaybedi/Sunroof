@@ -8,8 +8,11 @@ final class ShelfController {
     private let panel = ShelfPanel()
     private let root = NSView()
     private let columns = NSView()
-    /// Widgets float under the shelf in their own transparent window, so they never take space from the columns.
-    private let tray = ShelfPanel()
+    /// Shelf body (material + columns) on top; the widgets float in the transparent strip under it, in the same
+    /// window (one key window: no dimming when you click a widget, and the glass samples the desktop).
+    private let shelfArea = NSView()
+    private let tray = NSView()
+    private var trayHeight: NSLayoutConstraint!
     static let widgetCell: CGFloat = 158 // 150 pt tile + 8 pt gap
     private var materialView: NSView?
     private var monitors: [Any] = []
@@ -35,7 +38,7 @@ final class ShelfController {
     /// Frontmost app when the shelf opened — the paste target.
     private(set) var previousApp: NSRunningApplication?
     var isVisible: Bool { panel.isVisible && hideGeneration == 0 }
-    var visibleFrame: CGRect? { isVisible ? panel.frame : nil }
+    var visibleFrame: CGRect? { isVisible ? shelfFrame : nil }
     var displayKey: String? { screen.map(ShelfGeometry.displayKey) }
 
     init(settings: AppSettings) {
@@ -48,9 +51,17 @@ final class ShelfController {
         let body = NSView()
         body.addSubview(columns)
         body.addSubview(handle)
-        tray.hasShadow = false // each tile casts its own
-        tray.becomesKeyOnlyIfNeeded = true // buttons don't take focus from the shelf; text fields do
+        for v in [shelfArea, tray] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
+        trayHeight = tray.heightAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
+            shelfArea.topAnchor.constraint(equalTo: root.topAnchor),
+            shelfArea.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            shelfArea.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            shelfArea.bottomAnchor.constraint(equalTo: tray.topAnchor),
+            tray.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            tray.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            tray.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            trayHeight,
             columns.topAnchor.constraint(equalTo: body.topAnchor),
             columns.leadingAnchor.constraint(equalTo: body.leadingAnchor),
             columns.trailingAnchor.constraint(equalTo: body.trailingAnchor),
@@ -67,28 +78,43 @@ final class ShelfController {
 
     private var body: NSView!
 
-    /// The widget band's content (SwiftUI host), shown in the tray under the shelf.
+    /// The widget band's content (SwiftUI host), shown in the strip under the shelf.
     func setWidgetBand(_ view: NSView) {
-        tray.contentView = view
+        tray.subviews.forEach { $0.removeFromSuperview() }
+        view.frame = tray.bounds
+        view.autoresizingMask = [.width, .height]
+        tray.addSubview(view)
         updateTray()
     }
 
-    private var showsTray: Bool { settings.showWidgets && tray.contentView != nil }
-
-    /// Directly under the shelf, as wide as it; never below the bottom of the screen.
-    private func trayFrame(under shelf: CGRect) -> CGRect {
-        let height = CGFloat(max(1, min(settings.widgetRows, 4))) * Self.widgetCell + 24 // grip + room for tile shadows
-        let floor = screen?.visibleFrame.minY ?? 0
-        return CGRect(x: shelf.minX, y: max(floor, shelf.minY - height - 4), width: shelf.width, height: height)
+    /// Height of the widget strip (0 when widgets are off).
+    private var wantedTrayHeight: CGFloat {
+        guard settings.showWidgets, !tray.subviews.isEmpty else { return 0 }
+        return CGFloat(max(1, min(settings.widgetRows, 4))) * Self.widgetCell + 22 // grip + breathing room
     }
 
-    /// Follows the shelf's frame and the Widgets settings while the shelf is open.
+    /// The shelf part of the window (the window also holds the widget strip below it).
+    private var shelfFrame: CGRect {
+        var f = panel.frame
+        f.origin.y += trayHeight.constant
+        f.size.height -= trayHeight.constant
+        return f
+    }
+
+    /// The shelf's frame for `height` on the current screen, leaving room for the widgets; plus the window frame.
+    private func frames(shelfHeight: CGFloat) -> (shelf: CGRect, window: CGRect)? {
+        guard let screen else { return nil }
+        let tray = wantedTrayHeight
+        let shelf = ShelfGeometry.frame(height: shelfHeight, screenFrame: screen.frame, visibleFrame: screen.visibleFrame, reserve: tray)
+        return (shelf, CGRect(x: shelf.minX, y: shelf.minY - tray, width: shelf.width, height: shelf.height + tray))
+    }
+
+    /// Re-applies the widget strip after a settings change while the shelf is open.
     private func updateTray() {
-        tray.appearance = panel.appearance
-        guard isVisible, showsTray else { tray.orderOut(nil); return }
-        tray.setFrame(trayFrame(under: panel.frame), display: true)
-        tray.alphaValue = 1
-        tray.orderFrontRegardless()
+        guard isVisible, let f = frames(shelfHeight: shelfFrame.height) else { trayHeight.constant = wantedTrayHeight; return }
+        trayHeight.constant = wantedTrayHeight
+        panel.setFrame(f.window, display: true)
+        panel.invalidateShadow()
     }
 
     /// A view pinned over the top of the columns (the search overlay); nil removes it.
@@ -123,30 +149,20 @@ final class ShelfController {
         rebuildColumnsIfNeeded()
         let saved = settings.height(forDisplay: ShelfGeometry.displayKey(screen))
             ?? screen.visibleFrame.height * ShelfGeometry.defaultFraction
-        let final = ShelfGeometry.frame(height: saved, screenFrame: screen.frame, visibleFrame: screen.visibleFrame)
+        trayHeight.constant = wantedTrayHeight
+        let final = frames(shelfHeight: saved)!.window
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let start = reduceMotion ? final : final.offsetBy(dx: 0, dy: final.height)
         panel.setFrame(start, display: false)
         panel.alphaValue = reduceMotion ? 0 : 1
         panel.orderFrontRegardless()
         panel.makeKey()
-        if showsTray {
-            tray.appearance = panel.appearance
-            tray.setFrame(trayFrame(under: final), display: false)
-            tray.alphaValue = 0
-            tray.orderFrontRegardless()
-        }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.18
             ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
             if reduceMotion { panel.animator().alphaValue = 1 } else { panel.animator().setFrame(final, display: true) }
         }
-        if showsTray {
-            NSAnimationContext.runAnimationGroup { ctx in // float in just after the shelf lands
-                ctx.duration = 0.25
-                tray.animator().alphaValue = 1
-            }
-        }
+        panel.invalidateShadow()
         installMonitors()
         if let focus { split?.focus(focus) }
         onVisibilityChange?(true)
@@ -181,12 +197,10 @@ final class ShelfController {
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             if reduceMotion { panel.animator().alphaValue = 0 }
             else { panel.animator().setFrame(frame.offsetBy(dx: 0, dy: frame.height), display: true) }
-            tray.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.hideGeneration == generation else { completion?(); return }
                 self.panel.orderOut(nil)
-                self.tray.orderOut(nil)
                 self.hideGeneration = 0
                 completion?()
             }
@@ -205,13 +219,13 @@ final class ShelfController {
 
     private func resize(by dy: CGFloat?, ended: Bool) {
         guard let screen else { return }
-        guard let dy else { resizeStart = panel.frame; return } // drag began
-        let start = resizeStart ?? panel.frame
-        let f = ShelfGeometry.frame(height: start.height + dy, screenFrame: screen.frame, visibleFrame: screen.visibleFrame)
-        panel.setFrame(f, display: true)
-        if showsTray { tray.setFrame(trayFrame(under: f), display: true) }
+        guard let dy else { resizeStart = shelfFrame; return } // drag began
+        let start = resizeStart ?? shelfFrame
+        guard let f = frames(shelfHeight: start.height + dy) else { return }
+        panel.setFrame(f.window, display: true)
         if ended {
-            settings.setHeight(f.height, forDisplay: ShelfGeometry.displayKey(screen))
+            panel.invalidateShadow()
+            settings.setHeight(f.shelf.height, forDisplay: ShelfGeometry.displayKey(screen))
             resizeStart = nil
         }
     }
@@ -224,7 +238,7 @@ final class ShelfController {
             MainActor.assumeIsolated { self?.hide() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard let self, let window = e.window, window === self.panel || window === self.tray else { return e } // keys in Settings/onboarding aren't ours
+            guard let self, let window = e.window, window === self.panel else { return e } // keys in Settings/onboarding aren't ours
             let flags = e.modifierFlags.intersection([.command, .shift, .option, .control])
             if flags == [.command, .shift], e.charactersIgnoringModifiers?.lowercased() == "f" { // ⌘⇧F (any layout)
                 MainActor.assumeIsolated { self.onGlobalSearch?() }
@@ -255,7 +269,7 @@ final class ShelfController {
     private func scrollToClose(_ e: NSEvent) {
         guard e.momentumPhase == [], let screen else { return }
         let up = -normalizedDownAmount(e, invert: settings.invertScroll)
-        let inZone = ShelfGeometry.isInCloseZone(NSEvent.mouseLocation, panelFrame: panel.frame, screenFrame: screen.frame)
+        let inZone = ShelfGeometry.isInCloseZone(NSEvent.mouseLocation, panelFrame: shelfFrame, screenFrame: screen.frame)
         if closeTracker.add(upAmount: up, inZone: inZone, time: ProcessInfo.processInfo.systemUptime) { hide() }
     }
 
@@ -292,9 +306,9 @@ final class ShelfController {
             solid.addSubview(body)
             container = solid
         }
-        container.frame = root.bounds
+        container.frame = shelfArea.bounds
         container.autoresizingMask = [.width, .height]
-        root.addSubview(container)
+        shelfArea.addSubview(container)
         materialView = container
     }
 

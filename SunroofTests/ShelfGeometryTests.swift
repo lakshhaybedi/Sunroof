@@ -79,4 +79,12 @@ import Testing
         _ = c.add(upAmount: 4, inZone: true, time: 0)
         do { let r = c.add(upAmount: 2, inZone: true, time: 5); #expect(!r) }
     }
+
+    // The shelf never grows into the widgets below it.
+    @Test func heightLeavesRoomForWidgets() {
+        let visible = CGRect(x: 0, y: 0, width: 1500, height: 1000)
+        let f = ShelfGeometry.frame(height: 900, screenFrame: visible, visibleFrame: visible, reserve: 300)
+        #expect(f.height == 700)
+        #expect(f.maxY == 1000)
+    }
 }

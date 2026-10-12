@@ -9,15 +9,15 @@ struct StatsWidget: View {
     var body: some View {
         if size == .small {
             HStack(spacing: 14) {
-                Ring(value: model.cpu, label: "CPU")
-                Ring(value: memory, label: "MEM")
+                Ring(value: model.cpu, label: "CPU").tint(.green)
+                Ring(value: memory, label: "MEM").tint(.blue)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             VStack(alignment: .leading, spacing: 7) {
-                Bar(label: "CPU", value: model.cpu, detail: percent(model.cpu))
+                Bar(label: "CPU", value: model.cpu, detail: percent(model.cpu)).tint(.green)
                 Bar(label: "Memory", value: memory,
-                    detail: "\(ByteCountFormatter.string(fromByteCount: Int64(model.memoryUsed), countStyle: .memory)) of \(ByteCountFormatter.string(fromByteCount: Int64(model.memoryTotal), countStyle: .memory))")
+                    detail: "\(ByteCountFormatter.string(fromByteCount: Int64(model.memoryUsed), countStyle: .memory)) of \(ByteCountFormatter.string(fromByteCount: Int64(model.memoryTotal), countStyle: .memory))").tint(.blue)
                 HStack {
                     if let b = model.battery {
                         Label(percent(b.level), systemImage: b.charging ? "battery.100.bolt" : batterySymbol(b.level))

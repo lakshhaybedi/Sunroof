@@ -73,4 +73,12 @@ import Testing
         #expect(spies[.calendar]?.running == true)
         #expect(spies[.stats]?.running != true)
     }
+
+    // A one-row band shows Large widgets at Medium instead of hiding them.
+    @Test func largeShrinksToFitOneRow() {
+        let (placed, hidden) = WidgetLayout.default.pack(columns: 10, rows: 1)
+        #expect(placed.first { $0.item.kind == .calendar }?.item.size == .medium)
+        #expect(at(placed, .calendar)! == (0, 0))
+        #expect(!hidden.contains { $0.kind == .calendar })
+    }
 }
