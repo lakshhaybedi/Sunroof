@@ -3,6 +3,22 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.3</title>
+      <pubDate>Mon, 12 Oct 2026 06:32:46 -0000</pubDate>
+      <sparkle:version>0.2.3</sparkle:version>
+      <sparkle:shortVersionString>0.2.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Widgets look new**: each widget sits on the same Liquid Glass as the shelf and blurs what&#x27;s behind it. Clicking into a widget no longer dims the shelf.
+- **Colour**: Weather follows the sky, Music shows the album art blurred behind it, and Calendar, Tasks and System Stats each have their own tint.
+- **Fit**: widgets fill the full width. The shelf can&#x27;t grow over them. Large widgets shrink to fit a one-row band, so Calendar no longer disappears.
+- **Rearrange by dragging**: drag a widget onto another to swap places. The ＋ menu now opens right above the ＋.
+- **Music**: click or drag the progress bar to move the playhead.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.3/Sunroof-0.2.3.dmg" type="application/octet-stream" sparkle:edSignature="kJQqoQrZCWID1amnV75MiPUuvez1fkIQqbOwTVxQsckJ/V23gj6U3l+VGfJz5IO606Uavam8pSsR9ybfSoLCDA==" length="4796155" />
+    </item>
+    <item>
       <title>Sunroof 0.2.2</title>
       <pubDate>Mon, 12 Oct 2026 06:10:49 -0000</pubDate>
       <sparkle:version>0.2.2</sparkle:version>
