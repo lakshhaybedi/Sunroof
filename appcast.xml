@@ -3,6 +3,20 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.4</title>
+      <pubDate>Mon, 12 Oct 2026 06:52:55 -0000</pubDate>
+      <sparkle:version>0.2.4</sparkle:version>
+      <sparkle:shortVersionString>0.2.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **Permissions**: the Calendar, Reminders and Location dialogs no longer open hidden behind the shelf. Sunroof closes the shelf first, and widgets show your data as soon as you allow access.
+- **Music**: click the album art to open the player. Choose any music app to open in *Settings › Widgets › Music*.
+- **Quick Look**: Space opens and closes the preview, the arrow keys move to the next file while previewing, and Esc closes the preview before the shelf.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.4/Sunroof-0.2.4.dmg" type="application/octet-stream" sparkle:edSignature="+xzxc7knLv8/S/c1GZw87yvFnvLFFlxBVBLfTfyR8YHnkKrQ6ruJd0uP1Vvr/oGyN8JJ/FEIxqSQUty2C6glCw==" length="4813561" />
+    </item>
+    <item>
       <title>Sunroof 0.2.3</title>
       <pubDate>Mon, 12 Oct 2026 06:32:46 -0000</pubDate>
       <sparkle:version>0.2.3</sparkle:version>
