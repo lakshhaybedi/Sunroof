@@ -7,6 +7,15 @@ import SwiftUI
     func stop()
 }
 
+/// Closes the shelf, then runs `request` — macOS permission dialogs open below the shelf and would be hidden.
+@MainActor func askMacOS(_ request: @escaping @MainActor () async -> Void) {
+    NotificationCenter.default.post(name: .shelfDismiss, object: nil)
+    Task {
+        try? await Task.sleep(for: .milliseconds(350)) // let the shelf slide away first
+        await request()
+    }
+}
+
 /// Owns the widget models and builds their views.
 @MainActor @Observable
 final class WidgetHost {

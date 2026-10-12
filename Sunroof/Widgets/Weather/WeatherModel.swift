@@ -103,7 +103,11 @@ final class WeatherModel: NSObject, WidgetModel, CLLocationManagerDelegate {
 
     func useMyLocation() {
         settings.weatherUseLocation = true
-        requestLocation()
+        if (location?.authorizationStatus ?? CLLocationManager().authorizationStatus) == .notDetermined {
+            askMacOS { [self] in requestLocation() }
+        } else {
+            requestLocation()
+        }
     }
 
     private func requestLocation() {

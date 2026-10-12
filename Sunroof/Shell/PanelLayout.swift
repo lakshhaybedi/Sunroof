@@ -9,6 +9,8 @@ enum PanelID: String, CaseIterable, Codable {
 extension Notification.Name {
     /// Posted when the shelf opens to give a column keyboard focus (object: PanelID raw value).
     static let shelfFocusPanel = Notification.Name("Sunroof.focusPanel")
+    /// Closes the shelf (e.g. so a macOS permission dialog isn't hidden behind it).
+    static let shelfDismiss = Notification.Name("Sunroof.dismissShelf")
 }
 
 struct PanelDescriptor {

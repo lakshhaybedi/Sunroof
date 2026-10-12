@@ -69,8 +69,9 @@ final class CalendarModel: WidgetModel {
     }
 
     func requestAccess() {
-        Task {
+        askMacOS { [self] in
             _ = try? await store.requestFullAccessToEvents()
+            store.reset() // a store made before access was granted sees no calendars until reset
             refreshAccess()
             reload()
         }

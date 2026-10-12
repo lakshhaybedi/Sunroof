@@ -155,6 +155,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             host.start()
         }
         shelf.onHide.append { host.stop() }
+        NotificationCenter.default.addObserver(forName: .shelfDismiss, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.shelf.hide() }
+        }
     }
 
     /// Each widget's live model (filled in per widget).
@@ -175,7 +178,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .calendar: if let m = model as? CalendarModel { return AnyView(CalendarWidget(model: m, size: size).environment(settings)) }
         case .tasks: if let m = model as? TasksModel { return AnyView(TasksWidget(model: m, size: size)) }
         case .weather: if let m = model as? WeatherModel { return AnyView(WeatherWidget(model: m, size: size)) }
-        case .music: if let m = model as? MusicModel { return AnyView(MusicWidget(model: m, size: size)) }
+        case .music: if let m = model as? MusicModel { return AnyView(MusicWidget(model: m, size: size).environment(settings)) }
         }
         return AnyView(WidgetPlaceholder(kind: kind))
     }

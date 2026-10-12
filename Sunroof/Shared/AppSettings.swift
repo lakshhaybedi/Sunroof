@@ -68,6 +68,8 @@ final class AppSettings {
     var weatherUseLocation: Bool { didSet { save(weatherUseLocation, "weatherUseLocation") } }
     /// nil = follow the system's measurement system.
     var weatherFahrenheit: Bool? { didSet { if let f = weatherFahrenheit { save(f, "weatherFahrenheit") } else { defaults.removeObject(forKey: "settings.weatherFahrenheit") } } }
+    /// The music app the Music widget opens; "" = automatic (the one playing, or Music / Spotify).
+    var musicPlayerBundleID: String { didSet { save(musicPlayerBundleID, "musicPlayerBundleID") } }
     /// "sunroof", or a Reminders list identifier; "" = automatic (Reminders default list if allowed, else Sunroof).
     var taskListID: String { didSet { save(taskListID, "taskListID") } }
     var calendarMediumShowsAgenda: Bool { didSet { save(calendarMediumShowsAgenda, "calendarMediumShowsAgenda") } }
@@ -132,6 +134,7 @@ final class AppSettings {
         hiddenCalendarIDs = defaults.stringArray(forKey: "settings.hiddenCalendarIDs") ?? []
         calendarMediumShowsAgenda = v("calendarMediumShowsAgenda", false)
         taskListID = v("taskListID", "")
+        musicPlayerBundleID = v("musicPlayerBundleID", "")
         weatherCity = (defaults.data(forKey: "settings.weatherCity")).flatMap { try? JSONDecoder().decode(WeatherCity.self, from: $0) }
         weatherUseLocation = v("weatherUseLocation", false)
         weatherFahrenheit = defaults.object(forKey: "settings.weatherFahrenheit") as? Bool

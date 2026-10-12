@@ -71,8 +71,10 @@ final class MusicModel: WidgetModel {
         command("set player position to \(String(format: "%.2f", t))")
     }
 
-    func open(_ app: NowPlaying.App) {
-        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID) {
+    func open(_ app: NowPlaying.App) { open(bundleID: app.bundleID) }
+
+    func open(bundleID: String) {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
             NSWorkspace.shared.openApplication(at: url, configuration: .init())
         }
     }

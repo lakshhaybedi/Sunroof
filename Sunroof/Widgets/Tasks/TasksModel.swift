@@ -58,8 +58,9 @@ final class TasksModel: WidgetModel {
     }
 
     func requestRemindersAccess() {
-        Task {
+        askMacOS { [self] in
             _ = try? await store.requestFullAccessToReminders()
+            store.reset()
             refreshAccess()
             reload()
         }

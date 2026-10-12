@@ -3,6 +3,7 @@ import SwiftUI
 struct MusicWidget: View {
     let model: MusicModel
     let size: WidgetSize
+    @Environment(AppSettings.self) private var settings
     @State private var hovering = false
     /// Where the playhead is being dragged to (0…1), while scrubbing.
     @State private var scrub: Double?
@@ -46,6 +47,9 @@ struct MusicWidget: View {
         }
         .frame(width: side, height: side)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .onTapGesture { model.open(np.app) }
+        .help("Open \(np.app.scriptName)")
     }
 
     private func small(_ np: NowPlaying) -> some View {
@@ -101,11 +105,21 @@ struct MusicWidget: View {
             Image(systemName: "music.note").font(.title2).foregroundStyle(.tint)
             Text("Not playing").font(.caption).foregroundStyle(.secondary)
             HStack(spacing: 6) {
-                ForEach([NowPlaying.App.music, .spotify].filter(MusicModel.isInstalled), id: \.self) { app in
-                    Button(app == .music ? "Music" : "Spotify") { model.open(app) }.controlSize(.small)
+                if let player = MusicWidget.appName(settings.musicPlayerBundleID) {
+                    Button("Open \(player)") { model.open(bundleID: settings.musicPlayerBundleID) }.controlSize(.small)
+                } else {
+                    ForEach([NowPlaying.App.music, .spotify].filter(MusicModel.isInstalled), id: \.self) { app in
+                        Button(app == .music ? "Music" : "Spotify") { model.open(app) }.controlSize(.small)
+                    }
                 }
             }
         }
+    }
+
+    /// The display name of an installed app ("YouTube Music"), or nil.
+    static func appName(_ bundleID: String) -> String? {
+        guard !bundleID.isEmpty, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
+        return (FileManager.default.displayName(atPath: url.path) as NSString).deletingPathExtension
     }
 
     private func time(_ s: Double) -> String {

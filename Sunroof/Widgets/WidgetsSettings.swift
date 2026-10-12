@@ -43,6 +43,17 @@ struct WidgetsSettings: View {
                     ForEach(reminderLists, id: \.calendarIdentifier) { Text($0.title).tag($0.calendarIdentifier) }
                 }
             }
+            Section("Music") {
+                LabeledContent("Player to open") {
+                    HStack {
+                        Text(MusicWidget.appName(settings.musicPlayerBundleID) ?? "Automatic (Music or Spotify)").foregroundStyle(.secondary)
+                        Button("Choose…") { choosePlayer() }
+                        if !settings.musicPlayerBundleID.isEmpty { Button("Reset") { settings.musicPlayerBundleID = "" } }
+                    }
+                }
+                Text("Song info and controls work with Apple Music and Spotify (macOS has no public now-playing API for other apps).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Weather") {
                 LabeledContent("Location") {
                     Text(settings.weatherUseLocation ? "Current location" : settings.weatherCity?.name ?? "Not set").foregroundStyle(.secondary)
@@ -65,6 +76,16 @@ struct WidgetsSettings: View {
         .onAppear {
             if EKEventStore.authorizationStatus(for: .event) == .fullAccess { calendars = store.calendars(for: .event) }
             if EKEventStore.authorizationStatus(for: .reminder) == .fullAccess { reminderLists = store.calendars(for: .reminder) }
+        }
+    }
+
+    private func choosePlayer() {
+        let panel = NSOpenPanel()
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowedContentTypes = [.application]
+        panel.prompt = "Choose Player"
+        if panel.runModal() == .OK, let url = panel.url, let id = Bundle(url: url)?.bundleIdentifier {
+            settings.musicPlayerBundleID = id
         }
     }
 
