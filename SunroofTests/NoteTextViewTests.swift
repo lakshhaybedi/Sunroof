@@ -154,4 +154,33 @@ import Testing
         let tv = view("see [docs](https://apple.com) now\nx")
         #expect(tv.textStorage?.attribute(.toolTip, at: 5, effectiveRange: nil) as? String == "⌘-click to open apple.com in your browser")
     }
+
+    // Hidden text: a dark field until its eye is clicked; then visible and selected (ready to copy);
+    // hidden again as soon as the selection leaves it. Typing inside keeps it open.
+    @Test func concealedTextRevealsOnlyWhileSelected() {
+        let tv = view("Note\npin ||4321|| ok", caret: 0)
+        let secret = NSRange(location: 11, length: 4) // "4321"
+        #expect(color(tv, at: 11) == .clear)
+        #expect(tv.decorations.contains(.conceal(range: secret)))
+
+        tv.revealConcealed(at: 11)
+        #expect(color(tv, at: 11) != .clear)
+        #expect(tv.selectedRange() == secret)
+        #expect(!tv.decorations.contains(.conceal(range: secret)))
+
+        tv.setSelectedRange(NSRange(location: 13, length: 0)) // still inside
+        #expect(color(tv, at: 11) != .clear)
+        tv.insertText("9", replacementRange: tv.selectedRange()) // typing inside keeps it open
+        #expect(color(tv, at: 11) != .clear)
+
+        tv.setSelectedRange(NSRange(location: 0, length: 0)) // click elsewhere
+        #expect(color(tv, at: 11) == .clear)
+    }
+
+    // A caret arriving by keyboard doesn't reveal it: only the eye does.
+    @Test func caretAloneNeverReveals() {
+        let tv = view("Note\npin ||4321|| ok", caret: 0)
+        tv.setSelectedRange(NSRange(location: 12, length: 0))
+        #expect(color(tv, at: 11) == .clear)
+    }
 }

@@ -48,7 +48,10 @@ final class NoteTextView: NSTextView {
 
     private var pending: (location: Int, length: Int, fence: Bool)? // union of ranges changed in one edit
     private var caretLineStart: Int?
-    private var revealed = Set<Int>()
+    /// Start of the hidden (`||…||`) text unlocked with its eye; it hides again once the selection leaves it.
+    private var unlockedAt: Int?
+    /// The hidden field under the pointer (shows its eye).
+    private var hoveredConceal: NSRange?
     private var loading = false
     private let ownUndo = UndoManager()
 
@@ -86,7 +89,7 @@ final class NoteTextView: NSTextView {
     func load(_ text: String) {
         loading = true
         string = text
-        revealed.removeAll()
+        unlockedAt = nil
         restyleAll()
         undoManager?.removeAllActions()
         loading = false
@@ -132,12 +135,11 @@ final class NoteTextView: NSTextView {
 
     override func didChangeText() {
         super.didChangeText()
-        if hasMarkedText() { revealed.removeAll(); return } // IME composing: restyle when the text is committed
+        if hasMarkedText() { return } // IME composing: restyle when the text is committed
         if let p = pending {
             restyle(paragraphsIn: NSRange(location: p.location, length: p.length), toEnd: p.fence)
             pending = nil
         }
-        revealed.removeAll()
         if !loading { onTextChange?(string) }
     }
 
@@ -148,6 +150,7 @@ final class NoteTextView: NSTextView {
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        relockIfSelectionLeft()
         guard !hasMarkedText(), let ns = textStorage?.string as NSString? else { return }
         let start = ns.lineRange(for: NSRange(location: min(selectedRange().location, ns.length), length: 0)).location
         guard start != caretLineStart else {
@@ -158,6 +161,53 @@ final class NoteTextView: NSTextView {
         caretLineStart = start
         if let old, old <= ns.length { restyle(paragraphsIn: NSRange(location: old, length: 0)) }
         restyle(paragraphsIn: NSRange(location: start, length: 0))
+    }
+
+    // MARK: - Hidden text
+
+    /// The `||…||` content range (without the bars) that contains `loc`, if any.
+    func concealSpan(containing loc: Int) -> NSRange? {
+        let ns = string as NSString
+        guard loc <= ns.length else { return nil }
+        var line = ns.lineRange(for: NSRange(location: loc, length: 0))
+        if line.length > 0, ns.character(at: NSMaxRange(line) - 1) == 10 { line.length -= 1 }
+        for span in MarkdownStyler.parse(ns.substring(with: line), inCodeBlock: false).spans where span.kind == .conceal {
+            let r = NSRange(location: line.location + span.range.location, length: span.range.length)
+            if loc >= r.location && loc <= NSMaxRange(r) { return r }
+        }
+        return nil
+    }
+
+    /// The eye: show the hidden text and select it, ready to copy.
+    func revealConcealed(at loc: Int) {
+        guard let span = concealSpan(containing: loc) else { return }
+        unlockedAt = span.location
+        restyle(paragraphsIn: span)
+        setSelectedRange(span)
+        window?.makeFirstResponder(self)
+    }
+
+    /// Hide it again as soon as the caret/selection is outside it (typing inside keeps it open).
+    private func relockIfSelectionLeft() {
+        guard let u = unlockedAt else { return }
+        let sel = selectedRange()
+        if let span = concealSpan(containing: u), span.location == u,
+           sel.location >= span.location, NSMaxRange(sel) <= NSMaxRange(span) { return }
+        unlockedAt = nil
+        restyle(paragraphsIn: NSRange(location: min(u, (string as NSString).length), length: 0))
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let ok = super.resignFirstResponder()
+        if ok, let u = unlockedAt {
+            unlockedAt = nil
+            restyle(paragraphsIn: NSRange(location: min(u, (string as NSString).length), length: 0))
+        }
+        return ok
+    }
+
+    private func eyeRect(inField r: NSRect) -> NSRect {
+        NSRect(x: r.maxX - 20, y: r.midY - 8, width: 16, height: 16)
     }
 
     // MARK: - Commands
@@ -448,9 +498,14 @@ final class NoteTextView: NSTextView {
             case .code:
                 ts.addAttributes([.font: NSFont.monospacedSystemFont(ofSize: fontSize * 0.92, weight: .regular),
                                   .backgroundColor: NSColor.quaternaryLabelColor.withAlphaComponent(0.3)], range: r)
-            case .conceal where !revealed.contains(r.location):
+            case .conceal where r.location != unlockedAt:
                 clear(r)
                 decorate(r, .conceal)
+                // Room for the eye in short secrets: stretch the field to at least 44 pt.
+                let width = (ts.attributedSubstring(from: r).string as NSString).size(withAttributes: [.font: baseFont]).width
+                if width < 44, r.length > 0 {
+                    ts.addAttribute(.kern, value: 44 - width, range: NSRange(location: NSMaxRange(r) - 1, length: 1))
+                }
             case .conceal: break
             case let .link(url):
                 ts.addAttributes([.foregroundColor: accentColor, .underlineStyle: NSUnderlineStyle.single.rawValue,
@@ -520,11 +575,11 @@ final class NoteTextView: NSTextView {
         let chars = lm.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
         ts.enumerateAttribute(.noteDecoration, in: chars) { value, range, _ in
             guard let box = value as? DecorationBox, let r = rect(for: range) else { return }
-            drawDecoration(box.kind, in: r)
+            drawDecoration(box.kind, in: r, range: range)
         }
     }
 
-    private func drawDecoration(_ kind: DecorationBox.Kind, in r: NSRect) {
+    private func drawDecoration(_ kind: DecorationBox.Kind, in r: NSRect, range: NSRange) {
         switch kind {
         case let .checkbox(checked):
             let config = NSImage.SymbolConfiguration(pointSize: fontSize, weight: .regular)
@@ -544,8 +599,20 @@ final class NoteTextView: NSTextView {
             let x = textContainerOrigin.x + (textContainer?.lineFragmentPadding ?? 5) + 2
             NSBezierPath(roundedRect: NSRect(x: x, y: r.minY, width: 3, height: r.height), xRadius: 1.5, yRadius: 1.5).fill()
         case .conceal:
-            ("••••" as NSString).draw(at: NSPoint(x: r.minX, y: r.minY),
-                                     withAttributes: [.font: baseFont, .foregroundColor: NSColor.secondaryLabelColor])
+            // A dark field over the hidden text; hovering shows the eye that reveals it.
+            let field = NSRect(x: r.minX - 2, y: r.minY + 1, width: r.width + 4, height: r.height - 2)
+            let path = NSBezierPath(roundedRect: field, xRadius: 5, yRadius: 5)
+            NSColor(white: 0.1, alpha: 0.9).setFill()
+            path.fill()
+            NSColor.white.withAlphaComponent(0.14).setStroke()
+            path.lineWidth = 0.5
+            path.stroke()
+            if hoveredConceal == range,
+               let eye = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: "Reveal")?
+                .withSymbolConfiguration(.init(pointSize: 11, weight: .medium).applying(.init(paletteColors: [.white.withAlphaComponent(0.85)]))) {
+                let e = eyeRect(inField: field)
+                eye.draw(in: NSRect(x: e.midX - eye.size.width / 2, y: e.midY - eye.size.height / 2, width: eye.size.width, height: eye.size.height))
+            }
         case let .image(url):
             guard let img = ThumbnailCache.shared.thumbnail(for: url, maxPixelSize: 1200) else { return }
             let h = r.height - 4, w = min(h * CGFloat(img.width) / CGFloat(img.height), bounds.width - 40)
@@ -573,14 +640,29 @@ final class NoteTextView: NSTextView {
         super.updateTrackingAreas()
         trackingAreas.filter { $0.userInfo?["links"] != nil }.forEach(removeTrackingArea)
         // .activeAlways: the shelf belongs to an app that usually isn't active.
-        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseMoved, .activeAlways, .inVisibleRect],
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
                                        owner: self, userInfo: ["links": true]))
     }
 
     // Tooltips come from the .toolTip text attribute; this only shows the hand cursor while ⌘ is held over a link.
     override func mouseMoved(with event: NSEvent) {
         super.mouseMoved(with: event)
-        updateLinkCursor(event.modifierFlags, at: convert(event.locationInWindow, from: nil))
+        let p = convert(event.locationInWindow, from: nil)
+        updateLinkCursor(event.modifierFlags, at: p)
+        var hovered: NSRange?
+        if let (kind, range) = decoration(at: p), case .conceal = kind {
+            hovered = range
+            if let r = rect(for: range), eyeRect(inField: r).insetBy(dx: -4, dy: -4).contains(p) { NSCursor.pointingHand.set() }
+        }
+        if hovered != hoveredConceal {
+            hoveredConceal = hovered
+            needsDisplay = true
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        if hoveredConceal != nil { hoveredConceal = nil; needsDisplay = true }
     }
 
     override func flagsChanged(with event: NSEvent) {
@@ -600,8 +682,8 @@ final class NoteTextView: NSTextView {
             switch kind {
             case .checkbox: toggleCheckbox(at: range.location); return
             case .conceal:
-                revealed.insert(range.location)
-                restyle(paragraphsIn: range)
+                // Only the eye reveals; a click on the dark field itself does nothing (no caret inside a secret).
+                if let r = rect(for: range), eyeRect(inField: r).insetBy(dx: -4, dy: -4).contains(p) { revealConcealed(at: range.location) }
                 return
             default: break
             }
