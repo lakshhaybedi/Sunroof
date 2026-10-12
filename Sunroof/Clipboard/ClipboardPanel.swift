@@ -255,7 +255,7 @@ struct ClipboardPanel: View {
         case .return:
             if let selected { paster.paste(selected, plainText: key.modifiers.contains(.option)) }
             return .handled
-        case .delete, .deleteForward:
+        case _ where key.isBackspace, .deleteForward:
             if let selected, !showFavorites { store.delete(selected.id) }
             return .handled
         case .space:

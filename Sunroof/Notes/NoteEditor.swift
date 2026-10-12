@@ -242,6 +242,8 @@ struct FormatBar: View {
             button("list.bullet", "Bulleted List") { $0.toggleBlock(.bullet) }
             button("list.number", "Numbered List") { $0.toggleBlock(.numbered) }
             button("checklist", "Checklist") { $0.toggleBlock(.checklist) }
+            Divider().frame(height: 16)
+            button("wand.and.stars", "Clean Up Note (⌘⇧K): turn bullets, numbers, checkboxes, headings and labels into markdown") { $0.cleanUp() }
         }
         .padding(.horizontal, 6).padding(.vertical, 4)
         .glassEffect(.regular, in: .capsule)

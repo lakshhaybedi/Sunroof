@@ -108,6 +108,10 @@ struct NotesPanel: View {
                                 NSWorkspace.shared.activateFileViewerSelecting([store.folder.appendingPathComponent(note.filename)])
                             }
                             Button("Duplicate") { store.duplicate(note.filename) }
+                            Button("Clean Up Note") {
+                                let cleaned = NoteCleanup.clean(note.text)
+                                if cleaned != note.text { store.update(note.filename, text: cleaned) }
+                            }
                             Divider()
                             Button("Move to Trash", role: .destructive) { controller.delete(note.filename) }
                         }

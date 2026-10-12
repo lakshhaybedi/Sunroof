@@ -219,6 +219,13 @@ final class NoteTextView: NSTextView {
         window?.makeFirstResponder(self)
     }
 
+    /// ⌘⇧K: tidy the whole note into markdown (one undo step).
+    func cleanUp() {
+        let new = NoteCleanup.clean(string)
+        let sel = selectedRange()
+        perform(TextEdit(text: new, selection: NSRange(location: min(sel.location, (new as NSString).length), length: 0)))
+    }
+
     func toggleCheckbox(at location: Int) {
         let sel = selectedRange()
         perform(TextEdit(text: ListEditing.toggleCheckbox(lineContaining: location, in: string), selection: sel))
@@ -236,6 +243,7 @@ final class NoteTextView: NSTextView {
         case ([.command, .shift], "h", _): toggleInline(open: "==", close: "==")
         case ([.command], "e", _): toggleInline(open: "`", close: "`")
         case ([.command], "k", _): insertLink()
+        case ([.command, .shift], "k", _): cleanUp()
         case ([.command], "1", _): toggleBlock(.heading(1))
         case ([.command], "2", _): toggleBlock(.heading(2))
         case ([.command], "3", _): toggleBlock(.heading(3))

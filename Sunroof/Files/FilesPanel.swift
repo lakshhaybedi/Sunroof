@@ -265,13 +265,19 @@ struct FilesPanel: View {
         let items = model.items
         let index = items.firstIndex { selection.contains($0.url) }
         if key.modifiers.contains(.command) {
+            if key.isBackspace { trash(selectedItems); return .handled } // ⌘⌫ Move to Trash
             switch key.key {
             case .upArrow: model.goUp(); selection = []; return .handled
-            case .delete: trash(selectedItems); return .handled
             default: break
             }
             switch key.characters {
             case "o": selectedItems.forEach(open); return .handled
+            case "a": selection = Set(items.map(\.url)); return .handled
+            case "c":
+                guard !selectedItems.isEmpty else { return .ignored }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.writeObjects(selectedItems.map { $0.url as NSURL })
+                return .handled
             case "1": settings.filesAsList = false; return .handled
             case "2": settings.filesAsList = true; return .handled
             default: return .ignored

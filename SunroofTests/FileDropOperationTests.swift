@@ -65,3 +65,10 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["a.txt"])
     }
 }
+
+// The Mac Backspace key sends U+007F, but SwiftUI's `.delete` is U+0008: ⌘⌫ / ⌫ must match both.
+@Test func backspaceMatchesBothCharacters() {
+    #expect(isBackspace("\u{7F}"))
+    #expect(isBackspace("\u{8}"))
+    #expect(!isBackspace("a"))
+}
