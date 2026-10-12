@@ -4,6 +4,8 @@ struct MusicWidget: View {
     let model: MusicModel
     let size: WidgetSize
     @State private var hovering = false
+    /// Where the playhead is being dragged to (0…1), while scrubbing.
+    @State private var scrub: Double?
 
     var body: some View {
         Group {
@@ -71,9 +73,13 @@ struct MusicWidget: View {
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     let pos = np.position(at: ctx.date)
                     VStack(spacing: 2) {
-                        ProgressView(value: np.duration > 0 ? pos / np.duration : 0).progressViewStyle(.linear)
+                        Scrubber(value: scrub ?? (np.duration > 0 ? pos / np.duration : 0)) { f, done in
+                            scrub = done ? nil : f
+                            if done { model.seek(to: f * np.duration) }
+                        }
                         HStack {
-                            Text(time(pos)); Spacer(); Text("-" + time(max(0, np.duration - pos)))
+                            let shown = scrub.map { $0 * np.duration } ?? pos
+                            Text(time(shown)); Spacer(); Text("-" + time(max(0, np.duration - shown)))
                         }
                         .font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary)
                     }
@@ -105,5 +111,34 @@ struct MusicWidget: View {
     private func time(_ s: Double) -> String {
         let t = Int(s.rounded())
         return String(format: "%d:%02d", t / 60, t % 60)
+    }
+}
+
+/// A progress bar you can click or drag to move the playhead. Its drag wins over the widget's move-drag.
+private struct Scrubber: View {
+    let value: Double
+    let onChange: (Double, Bool) -> Void // fraction, finished
+    @State private var hovering = false
+
+    var body: some View {
+        GeometryReader { g in
+            let f = max(0, min(value, 1))
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.15))
+                Capsule().fill(Color.primary.opacity(0.8)).frame(width: max(4, g.size.width * f))
+                Circle().fill(.white).frame(width: 10, height: 10).shadow(radius: 1)
+                    .offset(x: g.size.width * f - 5).opacity(hovering ? 1 : 0)
+            }
+            .frame(height: hovering ? 6 : 4)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .highPriorityGesture(DragGesture(minimumDistance: 0)
+                .onChanged { onChange(max(0, min($0.location.x / g.size.width, 1)), false) }
+                .onEnded { onChange(max(0, min($0.location.x / g.size.width, 1)), true) })
+            .animation(.easeOut(duration: 0.12), value: hovering)
+        }
+        .frame(height: 14)
+        .help("Drag to move the playhead")
     }
 }

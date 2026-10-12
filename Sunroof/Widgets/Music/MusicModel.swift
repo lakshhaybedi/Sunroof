@@ -60,6 +60,17 @@ final class MusicModel: WidgetModel {
     func next() { command("next track") }
     func previous() { command("previous track") }
 
+    /// Jumps to `seconds` in the current track (shown right away, then confirmed by the player).
+    func seek(to seconds: Double) {
+        guard let np = current else { return }
+        let t = max(0, min(seconds, np.duration))
+        var moved = np
+        moved.position = t
+        moved.updatedAt = .now
+        set(np.app, moved)
+        command("set player position to \(String(format: "%.2f", t))")
+    }
+
     func open(_ app: NowPlaying.App) {
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID) {
             NSWorkspace.shared.openApplication(at: url, configuration: .init())
