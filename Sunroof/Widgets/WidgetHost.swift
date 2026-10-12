@@ -23,24 +23,27 @@ let permissionLog = Logger(subsystem: "com.lakshhaybedi.Sunroof", category: "per
 }
 
 /// Asks for Calendar or Reminders access: the system dialog if never asked, otherwise the Privacy pane to turn it on.
-@MainActor func requestEventKitAccess(_ type: EKEntityType, store: EKEventStore, then done: @escaping @MainActor () -> Void) {
+/// `done(granted)`: trust the request's answer — the static authorization status can keep saying "not determined"
+/// in the running process after the user allows access.
+@MainActor func requestEventKitAccess(_ type: EKEntityType, store: EKEventStore, then done: @escaping @MainActor (Bool) -> Void) {
     let name = type == .event ? "Calendars" : "Reminders"
     let status = EKEventStore.authorizationStatus(for: type)
     permissionLog.notice("\(name, privacy: .public) access requested; status \(status.rawValue, privacy: .public)")
     guard status == .notDetermined else {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_\(name)")!)
-        done()
+        done(false)
         return
     }
     askMacOS {
+        var granted = false
         do {
-            let granted = try await type == .event ? store.requestFullAccessToEvents() : store.requestFullAccessToReminders()
+            granted = try await type == .event ? store.requestFullAccessToEvents() : store.requestFullAccessToReminders()
             permissionLog.notice("\(name, privacy: .public) request returned \(granted, privacy: .public)")
         } catch {
             permissionLog.error("\(name, privacy: .public) request failed: \(error.localizedDescription, privacy: .public)")
         }
         store.reset() // a store made before access was granted sees nothing until reset
-        done()
+        done(granted)
     }
 }
 

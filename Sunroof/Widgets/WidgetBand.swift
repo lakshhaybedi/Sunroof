@@ -45,7 +45,7 @@ struct WidgetBand: View {
     private var rowsGrip: some View {
         Capsule().fill(Color.secondary.opacity(0.5))
             .frame(width: 36, height: 4)
-            .frame(maxWidth: .infinity, minHeight: 6)
+            .frame(maxWidth: .infinity, minHeight: 10, maxHeight: 10)
             .contentShape(Rectangle())
             .onHover { inside in if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
             .gesture(DragGesture(minimumDistance: 4)

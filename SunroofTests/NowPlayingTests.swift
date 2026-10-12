@@ -37,4 +37,20 @@ import Testing
         #expect(NowPlaying.from(userInfo: spotify, app: .spotify, now: t0)?.position == 12.5)
         #expect(NowPlaying.from(userInfo: ["Player State": "Stopped"], app: .spotify, now: t0) == nil)
     }
+
+    // The player's AppleScript reply: title, artist, state, position, duration, shuffle, favourite ("?" = unsupported).
+    @Test func parsesScriptReply() {
+        let m = NowPlaying.parse("Song\nBand\nplaying\n12,5\n200.0\ntrue\nfalse", app: .music, now: t0)
+        #expect(m?.title == "Song" && m?.playing == true && m?.position == 12.5 && m?.duration == 200)
+        #expect(m?.shuffle == true && m?.favorite == false)
+        let s = NowPlaying.parse("S\nA\npaused\n3\n180000\nfalse\n?", app: .spotify, now: t0)
+        #expect(s?.duration == 180 && s?.favorite == nil && s?.shuffle == false)
+        #expect(NowPlaying.parse("stopped", app: .music, now: t0) == nil)
+    }
+
+    @Test func parsesSearchResults() {
+        let r = MusicSearchResult.parse("ABC123\tHollywood\tKing Gizzard\nDEF\tSong 2\tBlur\n\nbad line\n")
+        #expect(r == [MusicSearchResult(id: "ABC123", title: "Hollywood", artist: "King Gizzard"),
+                      MusicSearchResult(id: "DEF", title: "Song 2", artist: "Blur")])
+    }
 }

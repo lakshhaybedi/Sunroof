@@ -60,6 +60,65 @@ final class MusicModel: WidgetModel {
     func next() { command("next track") }
     func previous() { command("previous track") }
 
+    func toggleShuffle() {
+        guard var np = current, let on = np.shuffle else { return }
+        np.shuffle = !on
+        set(np.app, np)
+        command(np.app == .music ? "set shuffle enabled to \(!on)" : "set shuffling to \(!on)")
+    }
+
+    /// ♥ in Apple Music (Spotify's scripting can't like songs).
+    func toggleFavorite() {
+        guard var np = current, np.app == .music, let fav = np.favorite else { return }
+        np.favorite = !fav
+        set(.music, np)
+        let script = """
+        tell application "Music"
+            try
+                set favorited of current track to \(!fav)
+            on error
+                set loved of current track to \(!fav)
+            end try
+        end tell
+        """
+        Task { _ = await run(script, in: .music) }
+    }
+
+    /// Songs in the Apple Music library matching `query` (Music must be running).
+    func search(_ query: String) async -> [MusicSearchResult] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        guard q.count >= 2 else { return [] }
+        let script = """
+        tell application "Music"
+            set out to ""
+            set res to search playlist "Library" for "\(q)" only songs
+            repeat with i from 1 to (count of res)
+                if i > 6 then exit repeat
+                set t to item i of res
+                set out to out & (persistent ID of t) & tab & (name of t) & tab & (artist of t) & linefeed
+            end repeat
+            return out
+        end tell
+        """
+        return MusicSearchResult.parse(await run(script, in: .music).string ?? "")
+    }
+
+    func play(_ result: MusicSearchResult) {
+        let id = result.id.filter { $0.isHexDigit }
+        Task {
+            _ = await run("tell application \"Music\" to play (first track of playlist \"Library\" whose persistent ID is \"\(id)\")", in: .music)
+            await refresh(.music)
+        }
+    }
+
+    /// Spotify can't be searched by script: open its own search.
+    func searchSpotify(_ query: String) {
+        guard let q = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed), !q.isEmpty,
+              let url = URL(string: "spotify:search:\(q)") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     /// Jumps to `seconds` in the current track (shown right away, then confirmed by the player).
     func seek(to seconds: Double) {
         guard let np = current else { return }
@@ -93,7 +152,11 @@ final class MusicModel: WidgetModel {
         guard var np else { set(app, nil); return } // stopped or quitting: never ask the player anything
         if np.playing { lastStarted = app }
         let previous = app == .music ? music : spotify
-        if previous?.title == np.title, previous?.artist == np.artist { np.artwork = previous?.artwork }
+        if previous?.title == np.title, previous?.artist == np.artist {
+            np.artwork = previous?.artwork
+            np.shuffle = previous?.shuffle
+            np.favorite = previous?.favorite
+        }
         set(app, np)
         if app == .music { Task { await refresh(app) } } // Music's notification has no position
         else if np.artwork == nil { Task { await loadArtwork(app) } }
@@ -101,21 +164,30 @@ final class MusicModel: WidgetModel {
 
     private func refresh(_ app: NowPlaying.App) async {
         guard Self.isRunning(app) else { set(app, nil); return }
+        let extras = app == .music ? """
+            set fav to "?"
+            try
+                set fav to (favorited of t) as string
+            on error
+                try
+                    set fav to (loved of t) as string
+                end try
+            end try
+            set sh to (shuffle enabled as string)
+        """ : """
+            set fav to "?"
+            set sh to (shuffling as string)
+        """
         let script = """
         tell application "\(app.scriptName)"
             if player state is stopped then return "stopped"
             set t to current track
-            return (name of t) & linefeed & (artist of t) & linefeed & (player state as string) & linefeed & (player position as string) & linefeed & ((duration of t) as string)
+        \(extras)
+            return (name of t) & linefeed & (artist of t) & linefeed & (player state as string) & linefeed & (player position as string) & linefeed & ((duration of t) as string) & linefeed & sh & linefeed & fav
         end tell
         """
         guard let out = await run(script, in: app).string, out != "stopped" else { set(app, nil); return }
-        let parts = out.components(separatedBy: "\n")
-        guard parts.count >= 5 else { return }
-        func num(_ s: String) -> Double { Double(s.replacingOccurrences(of: ",", with: ".")) ?? 0 }
-        var duration = num(parts[4])
-        if app == .spotify { duration /= 1000 } // Spotify reports milliseconds
-        var now = NowPlaying(app: app, title: parts[0], artist: parts[1], playing: parts[2] == "playing",
-                             position: num(parts[3]), duration: duration, updatedAt: .now)
+        guard var now = NowPlaying.parse(out, app: app, now: .now) else { return }
         let previous = app == .music ? music : spotify
         if previous?.title == now.title, previous?.artist == now.artist { now.artwork = previous?.artwork }
         set(app, now)

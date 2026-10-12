@@ -58,7 +58,11 @@ final class TasksModel: WidgetModel {
     }
 
     func requestRemindersAccess() {
-        requestEventKitAccess(.reminder, store: store) { [self] in refreshAccess(); reload() }
+        requestEventKitAccess(.reminder, store: store) { [self] granted in
+            if granted { grantedHere = true }
+            refreshAccess()
+            reload()
+        }
     }
 
     func toggle(_ task: TaskItem) {
@@ -81,10 +85,13 @@ final class TasksModel: WidgetModel {
         reload()
     }
 
+    /// Access granted in this run (the static status may lag behind until relaunch).
+    @ObservationIgnored private var grantedHere = false
+
     private func refreshAccess() {
         let status = EKEventStore.authorizationStatus(for: .reminder)
-        remindersAllowed = status == .fullAccess
-        remindersAsked = status != .notDetermined
+        remindersAllowed = grantedHere || status == .fullAccess
+        remindersAsked = grantedHere || status != .notDetermined
     }
 
     private func reload() {

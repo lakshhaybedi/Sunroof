@@ -104,7 +104,7 @@ final class ShelfController {
     private var wantedTrayHeight: CGFloat {
         guard settings.showWidgets, !tray.subviews.isEmpty else { return 0 }
         let rows = min(max(1, min(settings.widgetRows, 4)), max(1, widgetRowsInUse))
-        return CGFloat(rows) * Self.widgetCell + 22 // grip + breathing room
+        return CGFloat(rows) * Self.widgetCell + 10 // 10 pt grip above; each cell's 8 pt gap is the margin below
     }
 
     /// The shelf part of the window (the window also holds the widget strip below it).

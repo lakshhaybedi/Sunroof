@@ -70,7 +70,11 @@ final class CalendarModel: WidgetModel {
     }
 
     func requestAccess() {
-        requestEventKitAccess(.event, store: store) { [self] in refreshAccess(); reload() }
+        requestEventKitAccess(.event, store: store) { [self] granted in
+            if granted { grantedHere = true }
+            refreshAccess()
+            reload()
+        }
     }
 
     func shiftMonth(_ delta: Int) { month = calendar.date(byAdding: .month, value: delta, to: month) ?? month }
@@ -81,7 +85,11 @@ final class CalendarModel: WidgetModel {
         month = now()
     }
 
+    /// Access granted in this run (the static status may lag behind until relaunch).
+    @ObservationIgnored private var grantedHere = false
+
     private func refreshAccess() {
+        if grantedHere { access = .granted; return }
         access = switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess: .granted
         case .notDetermined: .unknown

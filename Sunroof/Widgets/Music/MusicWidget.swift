@@ -7,6 +7,10 @@ struct MusicWidget: View {
     @State private var hovering = false
     /// Where the playhead is being dragged to (0…1), while scrubbing.
     @State private var scrub: Double?
+    @State private var searching = false
+    @State private var query = ""
+    @State private var results: [MusicSearchResult] = []
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         Group {
@@ -69,10 +73,25 @@ struct MusicWidget: View {
     private func medium(_ np: NowPlaying) -> some View {
         HStack(spacing: 12) {
             artwork(np, side: 118)
+            if searching { searchPanel(np) } else { player(np) }
+        }
+        .padding(12)
+    }
+
+    private func player(_ np: NowPlaying) -> some View {
             VStack(alignment: .leading, spacing: 6) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(np.title).font(.callout.bold()).lineLimit(1)
-                    Text(np.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                HStack(alignment: .top, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(np.title).font(.callout.bold()).lineLimit(1)
+                        Text(np.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                    if let fav = np.favorite {
+                        Button { model.toggleFavorite() } label: {
+                            Image(systemName: fav ? "heart.fill" : "heart").foregroundStyle(fav ? Color.pink : .secondary)
+                        }
+                        .buttonStyle(HitButtonStyle(minSize: 24)).help(fav ? "Remove from Favorites" : "Favorite")
+                    }
                 }
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     let pos = np.position(at: ctx.date)
@@ -88,16 +107,71 @@ struct MusicWidget: View {
                         .font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary)
                     }
                 }
-                HStack(spacing: 14) {
+                HStack(spacing: 0) {
+                    Button { model.toggleShuffle() } label: {
+                        Image(systemName: "shuffle").font(.caption).foregroundStyle(np.shuffle == true ? Color.accentColor : .secondary)
+                    }
+                    .buttonStyle(HitButtonStyle(minSize: 24)).help("Shuffle").opacity(np.shuffle == nil ? 0 : 1)
+                    Spacer(minLength: 4)
                     Button { model.previous() } label: { Image(systemName: "backward.fill") }.buttonStyle(HitButtonStyle(minSize: 26))
                     Button { model.playPause() } label: { Image(systemName: np.playing ? "pause.fill" : "play.fill").font(.title3) }
-                        .buttonStyle(HitButtonStyle(minSize: 30))
+                        .buttonStyle(HitButtonStyle(minSize: 30)).padding(.horizontal, 8)
                     Button { model.next() } label: { Image(systemName: "forward.fill") }.buttonStyle(HitButtonStyle(minSize: 26))
+                    Spacer(minLength: 4)
+                    Button { searching = true; searchFocused = true } label: {
+                        Image(systemName: "magnifyingglass").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(HitButtonStyle(minSize: 24)).help(np.app == .spotify ? "Search Spotify" : "Search your Music library")
                 }
-                .frame(maxWidth: .infinity)
+            }
+    }
+
+    /// Search the Music library and play a result (Spotify: opens its own search).
+    private func searchPanel(_ np: NowPlaying) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "magnifyingglass").font(.caption).foregroundStyle(.secondary)
+                TextField(np.app == .spotify ? "Search Spotify" : "Search Music", text: $query)
+                    .textFieldStyle(.plain).font(.caption).focused($searchFocused)
+                    .onSubmit {
+                        if np.app == .spotify { model.searchSpotify(query); closeSearch() }
+                        else if let first = results.first { model.play(first); closeSearch() }
+                    }
+                Button { closeSearch() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                    .buttonStyle(HitButtonStyle(minSize: 20))
+            }
+            .padding(.horizontal, 6).padding(.vertical, 4)
+            .background(Color.primary.opacity(0.08), in: .rect(cornerRadius: 6))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(results) { r in
+                        Button { model.play(r); closeSearch() } label: {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(r.title).font(.caption.bold()).lineLimit(1)
+                                Text(r.artist).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 3).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if np.app == .spotify && !query.isEmpty {
+                        Text("Press ⏎ to search in Spotify").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
-        .padding(12)
+        .task(id: query) {
+            guard np.app == .music else { return }
+            try? await Task.sleep(for: .milliseconds(250)) // wait for typing to pause
+            guard !Task.isCancelled else { return }
+            results = await model.search(query)
+        }
+    }
+
+    private func closeSearch() {
+        searching = false
+        query = ""
+        results = []
     }
 
     private var notPlaying: some View {
@@ -137,14 +211,16 @@ private struct Scrubber: View {
     var body: some View {
         GeometryReader { g in
             let f = max(0, min(value, 1))
+            let h: CGFloat = hovering ? 5 : 3
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.15))
-                Capsule().fill(Color.primary.opacity(0.8)).frame(width: max(4, g.size.width * f))
-                Circle().fill(.white).frame(width: 10, height: 10).shadow(radius: 1)
-                    .offset(x: g.size.width * f - 5).opacity(hovering ? 1 : 0)
+                Capsule().fill(Color.primary.opacity(0.15)).frame(height: h)
+                Capsule().fill(Color.primary.opacity(0.8)).frame(width: max(h, g.size.width * f), height: h)
             }
-            .frame(height: hovering ? 6 : 4)
             .frame(maxHeight: .infinity)
+            .overlay(alignment: .leading) { // the handle shows on hover and never sets the bar's height
+                Circle().fill(.white).frame(width: 9, height: 9).shadow(radius: 1)
+                    .offset(x: g.size.width * f - 4.5).opacity(hovering ? 1 : 0)
+            }
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
             .highPriorityGesture(DragGesture(minimumDistance: 0)
