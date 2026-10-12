@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- **Widgets**: a band of widgets along the bottom of the shelf: **Calendar** (month view with an agenda), **Tasks** (Apple Reminders, or Sunroof's own list kept in `Tasks.md`), **Music** (Apple Music and Spotify), **Weather** (Open-Meteo, a city you pick or your location) and **System Stats** (CPU, memory, battery, disk, network).
+- Drag widgets to rearrange them. Right-click a widget to resize or remove it, and use ＋ to add one. Drag the grip above the band to change how many rows it has. The layout is remembered per display.
+- Widgets only run while the shelf is open, and macOS only asks for a permission when a widget needs it.
+- Change widget settings, or turn widgets off, in *Settings › Widgets*.
+
 ## 0.1.1
 
 - **Automatic updates**: Sunroof checks GitHub daily and downloads and installs new versions by itself. *Settings › General › Updates* has the toggles and a **Check Now** button, and the menu bar menu has **Check for Updates…**. Until releases are signed, re-allow Accessibility (for ⏎-to-paste) after an update installs.
