@@ -158,14 +158,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Each widget's live model (filled in per widget).
     private func makeWidgetModel(_ kind: WidgetKind) -> WidgetModel? {
         switch kind {
+        case .stats: StatsModel()
         default: nil
         }
     }
 
     private func widgetView(_ kind: WidgetKind, _ size: WidgetSize) -> AnyView {
+        let model = widgets.model(kind)
         switch kind {
-        default: AnyView(WidgetPlaceholder(kind: kind))
+        case .stats: if let m = model as? StatsModel { return AnyView(StatsWidget(model: m, size: size)) }
+        default: break
         }
+        return AnyView(WidgetPlaceholder(kind: kind))
     }
 
     private func setUpSearch() {
