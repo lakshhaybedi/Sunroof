@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- **Widgets float under the shelf**: they now sit in their own see-through tray below the shelf, so Clipboard, Files and Notes keep their full height. Each widget is a plain blurred card with a soft shadow, with no colour tint.
+
 ## 0.2.1
 
 - **Clipboard**: click anywhere on a clip to copy it. It slides smoothly to the top, and a "Copied" note confirms it.
