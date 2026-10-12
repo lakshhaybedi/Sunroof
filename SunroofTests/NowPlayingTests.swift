@@ -1,0 +1,30 @@
+import Foundation
+import Testing
+@testable import Sunroof
+
+@Suite struct NowPlayingTests {
+    let t0 = Date(timeIntervalSince1970: 1_000)
+    func np(_ app: NowPlaying.App, _ playing: Bool, at: Double = 0) -> NowPlaying {
+        NowPlaying(app: app, title: "\(app)", artist: "A", playing: playing, position: 30, duration: 200, updatedAt: t0.addingTimeInterval(at))
+    }
+
+    @Test func playingBeatsPaused() {
+        #expect(NowPlaying.merge(music: np(.music, false), spotify: np(.spotify, true), lastStarted: .music)?.app == .spotify)
+    }
+
+    @Test func bothPlayingLastStartedWins() {
+        #expect(NowPlaying.merge(music: np(.music, true), spotify: np(.spotify, true), lastStarted: .music)?.app == .music)
+        #expect(NowPlaying.merge(music: np(.music, true), spotify: np(.spotify, true), lastStarted: .spotify)?.app == .spotify)
+    }
+
+    @Test func neitherPlayingShowsMostRecentlyUpdated() {
+        #expect(NowPlaying.merge(music: np(.music, false, at: 5), spotify: np(.spotify, false, at: 1), lastStarted: nil)?.app == .music)
+        #expect(NowPlaying.merge(music: nil, spotify: nil, lastStarted: nil) == nil)
+    }
+
+    @Test func progressAdvancesOnlyWhilePlaying() {
+        #expect(np(.music, true).position(at: t0.addingTimeInterval(10)) == 40)
+        #expect(np(.music, false).position(at: t0.addingTimeInterval(10)) == 30)
+        #expect(np(.music, true).position(at: t0.addingTimeInterval(1_000)) == 200) // clamped
+    }
+}
