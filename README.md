@@ -13,6 +13,13 @@ Move the pointer to the very top of the screen and scroll down: a strip slides o
 
 ![Sunroof's shelf: clipboard history, a file drawer and markdown notes side by side, with calendar, weather, music, tasks and system widgets floating underneath](docs/images/hero.png)
 
+<details open>
+<summary><b>In daily use</b> (a real screenshot, personal items blacked out)</summary>
+
+![Sunroof in daily use: clipboard history, files, notes, and weather, calendar, music and system-stats widgets](docs/images/in-use.jpg)
+
+</details>
+
 ## Why Sunroof
 
 Sunroof lives above your menu bar and stays out of the way. No Dock icon, no window to manage — just a shelf that opens from the top edge of any screen, over any app, in any Space (full-screen apps included), and closes the way it opened.
