@@ -3,6 +3,18 @@
   <channel>
     <title>Sunroof</title>
     <item>
+      <title>Sunroof 0.2.12</title>
+      <pubDate>Tue, 13 Oct 2026 21:04:34 -0000</pubDate>
+      <sparkle:version>0.2.12</sparkle:version>
+      <sparkle:shortVersionString>0.2.12</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<pre>
+- **The shelf opens on the desktop you&#x27;re on**: after running for a while, macOS could tie the shelf to one desktop and open it there instead, so on other desktops it seemed not to open at all. Sunroof now checks each time it opens and repairs it on the spot.
+
+</pre>]]></description>
+      <enclosure url="https://github.com/lakshhaybedi/Sunroof/releases/download/v0.2.12/Sunroof-0.2.12.dmg" type="application/octet-stream" sparkle:edSignature="Vq1RVsc4Nq4GLTy9ntwecb3IY9urieeTkndJgN8EekY1/M3qt1BcLrqqVXBrvneWSdxpCNRO5qdcqWU+tjdbBA==" length="3729492" />
+    </item>
+    <item>
       <title>Sunroof 0.2.11</title>
       <pubDate>Mon, 12 Oct 2026 14:13:02 -0000</pubDate>
       <sparkle:version>0.2.11</sparkle:version>
