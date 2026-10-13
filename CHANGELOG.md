@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.12
+
+- **The shelf opens on the desktop you're on**: after running for a while, macOS could tie the shelf to one desktop and open it there instead, so on other desktops it seemed not to open at all. Sunroof now checks each time it opens and repairs it on the spot.
+
 ## 0.2.11
 
 - **Lighter opening**: Files thumbnails are kept between opens instead of being redrawn every time.
