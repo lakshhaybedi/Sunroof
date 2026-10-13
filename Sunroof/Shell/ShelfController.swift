@@ -1,11 +1,14 @@
 import AppKit
 import Observation
+import os
+
+private let shelfLog = Logger(subsystem: "com.lakshhaybedi.Sunroof", category: "shelf")
 
 /// Owns the shelf panel: showing, hiding, vertical resizing and the close gestures.
 @MainActor
 final class ShelfController {
     private let settings: AppSettings
-    private let panel = ShelfPanel()
+    private var panel = ShelfPanel() // replaced if macOS ties it to one desktop (see ensureOnActiveSpace)
     private let root = NSView()
     private let columns = NSView()
     /// Shelf body (material + columns) on top; the widgets float in the transparent strip under it, in the same
@@ -195,6 +198,7 @@ final class ShelfController {
         panel.setFrame(start, display: false)
         panel.alphaValue = reduceMotion ? 0 : 1
         panel.orderFrontRegardless()
+        ensureOnActiveSpace()
         panel.makeKey()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.18
@@ -206,6 +210,30 @@ final class ShelfController {
         if let focus { split?.focus(focus) }
         onVisibilityChange?(true)
         onShow.forEach { $0() }
+    }
+
+    /// The shelf is meant to appear on every desktop, but after a while macOS can tie it to one desktop and open it
+    /// there (restarting Sunroof fixed it). If it didn't land on the desktop being looked at: re-apply "all
+    /// desktops"; if that isn't enough, swap in a fresh window — what a restart did. Logged so the trigger can be found.
+    private func ensureOnActiveSpace() {
+        guard !panel.isOnActiveSpace else { return }
+        shelfLog.notice("Shelf opened on another desktop; re-applying all-desktops")
+        let behavior = panel.collectionBehavior
+        panel.collectionBehavior = []
+        panel.collectionBehavior = behavior
+        panel.orderFrontRegardless()
+        if panel.isOnActiveSpace { shelfLog.notice("Fixed by re-applying all-desktops"); return }
+        let old = panel, frame = old.frame, alpha = old.alphaValue
+        old.orderOut(nil)
+        old.contentView = NSView()
+        let fresh = ShelfPanel()
+        fresh.appearance = old.appearance
+        fresh.contentView = root
+        fresh.setFrame(frame, display: false)
+        fresh.alphaValue = alpha
+        panel = fresh
+        panel.orderFrontRegardless()
+        shelfLog.notice("Replaced the shelf window; on this desktop now: \(self.panel.isOnActiveSpace, privacy: .public)")
     }
 
     private func rebuildColumnsIfNeeded(force: Bool = false) {
