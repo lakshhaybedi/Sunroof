@@ -26,11 +26,16 @@ Local builds are signed ad-hoc and can't auto-update. macOS blocks the first lau
 5. Add the secrets above in GitHub › the repo › Settings › Secrets and variables › Actions.
 6. **GitHub Pages** — after the first release creates the `gh-pages` branch: Settings › Pages › Deploy from branch › `gh-pages` / root. The app reads `https://lakshhaybedi.github.io/Sunroof/appcast.xml`.
 
+## Branches
+
+- **`dev`**: day-to-day work. Push freely: every push is built and tested, and nothing reaches users.
+- **`main`**: only what ships. Releases are tagged on `main`; the Release workflow refuses a tag that isn't on `main`.
+
 ## Each release
 
-1. Bump `MARKETING_VERSION` in `project.yml` (the build number follows it automatically — Sparkle compares it).
-2. Add a `## X.Y.Z` section at the top of `CHANGELOG.md`.
-3. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+1. On `dev`: bump `MARKETING_VERSION` in `project.yml` (the build number follows it automatically — Sparkle compares it) and add a `## X.Y.Z` section at the top of `CHANGELOG.md`. Commit.
+2. Merge into `main`: `git checkout main && git merge --no-ff dev && git push origin main`.
+3. Tag `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`, then `git checkout dev` to keep working.
 
 The **Release** workflow tests, builds a Universal app, signs it with your Developer ID (hardened runtime), notarizes and staples the `.dmg`, publishes a GitHub Release with the changelog section, and adds the update to the appcast. Any step whose secrets are missing is skipped with a warning; without signing secrets you get an unsigned `.dmg`.
 

@@ -20,6 +20,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Only release what's on main
+        run: |
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME isn't on main. Merge dev into main first, then tag main."
+            exit 1
+          fi
+
       - name: Check the tag matches MARKETING_VERSION
         run: |
           TAG="${GITHUB_REF_NAME#v}"
