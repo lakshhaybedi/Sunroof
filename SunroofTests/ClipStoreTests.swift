@@ -86,6 +86,48 @@ import Testing
         #expect(store().history.map(\.text) == ["a"])
     }
 
+    @Test func sensitiveDuplicateConcealsHistoryAndRemovesFavorite() async {
+        let s = store()
+        s.ingest(clip("secret"))
+        s.toggleFavorite(clip("secret"))
+        await s.saveNow()
+        s.ingest(clip("secret", sensitive: true))
+        #expect(s.history.count == 1)
+        #expect(s.history[0].isSensitive)
+        #expect(s.favorites.isEmpty)
+        #expect(ClipStore.filter(s.history, query: "secret").isEmpty)
+        await s.saveNow()
+        #expect(store().history.isEmpty)
+        #expect(store().favorites.isEmpty)
+    }
+
+    @Test func ordinaryDuplicateDoesNotDowngradeSensitivity() async {
+        let s = store()
+        s.ingest(clip("secret", sensitive: true))
+        s.ingest(clip("secret"))
+        #expect(s.history[0].isSensitive)
+        await s.saveNow()
+        #expect(store().history.isEmpty)
+    }
+
+    @Test func importedImageCannotEscapeImagesDirectory() throws {
+        let s = store()
+        let outside = favoritesDir.appendingPathComponent("sentinel.png")
+        try FileManager.default.createDirectory(at: s.favoritesImagesDir, withIntermediateDirectories: true)
+        try Data("sentinel".utf8).write(to: outside)
+        var image = clip("image")
+        image.kind = .image
+        image.imageFile = "../sentinel.png"
+        let file = favoritesDir.appendingPathComponent("favorites.json")
+        try JSONEncoder().encode([image]).write(to: file)
+        #expect(store().favorites.isEmpty)
+        image.imageFile = "linked.png"
+        try FileManager.default.createSymbolicLink(at: s.favoritesImagesDir.appendingPathComponent("linked.png"), withDestinationURL: outside)
+        try JSONEncoder().encode([image]).write(to: file)
+        #expect(store().favorites.isEmpty)
+        #expect(try String(contentsOf: outside, encoding: .utf8) == "sentinel")
+    }
+
     @Test func corruptHistoryStartsEmpty() throws {
         try Data("{not json".utf8).write(to: historyDir.appendingPathComponent("history.json"))
         let s = store()
