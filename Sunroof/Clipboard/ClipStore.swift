@@ -38,10 +38,22 @@ final class ClipStore {
     // MARK: - Mutations
 
     func ingest(_ clip: Clip) {
+        // Once content is identified as sensitive, remove any persisted favorite too.
+        if clip.isSensitive {
+            let matching = favorites.filter { $0.contentHash == clip.contentHash }
+            for item in matching {
+                if let file = item.imageFile { removeImage(file, in: favoritesImagesDir) }
+            }
+            if !matching.isEmpty {
+                favorites.removeAll { $0.contentHash == clip.contentHash }
+                scheduleSave(favorites: true)
+            }
+        }
         if let i = history.firstIndex(where: { $0.contentHash == clip.contentHash }) {
             var existing = history.remove(at: i)
             existing.date = clip.date
             existing.source = clip.source
+            existing.isSensitive = existing.isSensitive || clip.isSensitive
             history.insert(existing, at: 0)
             if let file = clip.imageFile, file != existing.imageFile { removeImage(file, in: historyImagesDir) }
         } else {
@@ -100,7 +112,7 @@ final class ClipStore {
     func imageURL(for clip: Clip) -> URL? {
         guard let file = clip.imageFile else { return nil }
         let dir = favorites.contains { $0.id == clip.id } ? favoritesImagesDir : historyImagesDir
-        return dir.appendingPathComponent(file)
+        return Self.safeImageURL(file, in: dir)
     }
 
     static func filter(_ clips: [Clip], query: String) -> [Clip] {
@@ -205,8 +217,19 @@ final class ClipStore {
         }
         return clips.filter { c in
             guard let f = c.imageFile else { return true }
-            return FileManager.default.fileExists(atPath: imagesDir.appendingPathComponent(f).path)
+            guard let url = safeImageURL(f, in: imagesDir) else { return false }
+            return FileManager.default.fileExists(atPath: url.path)
         }
+    }
+
+    /// Synced JSON is untrusted: image names must stay inside the images folder,
+    /// including after resolving symbolic links.
+    private static func safeImageURL(_ name: String, in dir: URL) -> URL? {
+        guard !name.isEmpty, name != ".", name != "..", !name.contains("/"), !name.contains("\0") else { return nil }
+        let url = dir.appendingPathComponent(name)
+        guard url.resolvingSymlinksInPath().deletingLastPathComponent().standardizedFileURL.path
+                == dir.resolvingSymlinksInPath().standardizedFileURL.path else { return nil }
+        return url
     }
 
     private func trim() {
@@ -216,6 +239,7 @@ final class ClipStore {
     }
 
     private func removeImage(_ name: String, in dir: URL) {
-        try? FileManager.default.removeItem(at: dir.appendingPathComponent(name))
+        guard let url = Self.safeImageURL(name, in: dir) else { return }
+        try? FileManager.default.removeItem(at: url)
     }
 }
