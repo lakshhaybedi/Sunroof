@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-struct TaskItem: Identifiable, Equatable {
+struct TaskItem: Identifiable, Equatable, Sendable {
     let id: String
     var title: String
     var done: Bool

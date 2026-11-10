@@ -99,13 +99,23 @@ final class TasksModel: WidgetModel {
         lists = store.calendars(for: .reminder).map { List(id: $0.calendarIdentifier, title: $0.title) }
         guard currentListID != Self.sunroofListID, let list = store.calendar(withIdentifier: currentListID) else { reminders = []; return }
         let predicate = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: [list])
-        store.fetchReminders(matching: predicate) { [weak self] found in
+        store.fetchReminders(matching: predicate, completion: Self.remindersCompletion { [weak self] items in
+            self?.reminders = items
+        })
+    }
+
+    /// EventKit invokes this callback off the main queue. Do not inherit the model's
+    /// MainActor isolation: snapshot the results here, then hop to MainActor to publish.
+    nonisolated static func remindersCompletion(
+        _ receive: @escaping @MainActor @Sendable ([TaskItem]) -> Void
+    ) -> @Sendable ([EKReminder]?) -> Void {
+        { found in
             let items = (found ?? []).map { r in
                 TaskItem(id: r.calendarItemIdentifier, title: r.title ?? "", done: r.isCompleted,
                          due: r.dueDateComponents.flatMap { Calendar.current.date(from: $0) })
             }
             .sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
-            Task { @MainActor in self?.reminders = items }
+            Task { @MainActor in receive(items) }
         }
     }
 }
